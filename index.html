@@ -213,8 +213,8 @@
 
   <header class="hero">
     <p class="greet">Thư ơi,</p>
-    <h1>Giáng Sinh này anh tặng em gì?</h1>
-    <p class="lede">Mỗi ngày em được đoán một lần. Đoán sai thì anh thắp sáng thêm một chữ trong lời gợi ý.</p>
+    <h1>Em đoán xem Giáng Sinh này anh tặng em gì?</h1>
+    <p class="lede">Mỗi ngày em được đoán một lần. Đoán sai thì anh sẽ cho em một chữ trong lời gợi ý.</p>
   </header>
 
   <div id="phase"><p class="note">Đang mở…</p></div>
@@ -225,7 +225,7 @@
     <p id="music-note" class="note" hidden></p>
   </section>
 
-  <p class="sign">Luân</p>
+  <p class="sign">gà con của em</p>
 </main>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -376,7 +376,7 @@ function viewGuessing() {
          <input id="guess-input" name="guess" maxlength="60" spellcheck="false" autocapitalize="characters" autocorrect="off" placeholder="Viết đáp án bằng tiếng Anh">
          <button type="submit" class="btn">Đoán</button>
        </form>
-       <p class="note">Một lượt mỗi ngày, tính theo giờ bên Đức.</p>`;
+       <p class="note">Mỗi ngày em có một lượt, qua ngày mới thì em mới đoán tiếp được. Giờ tính theo giờ bên Đức nhé baby.</p>`;
 
   const history = state.guesses.length ? `<section class="block">
       <h2>Những lần em đã đoán</h2>
@@ -413,20 +413,20 @@ function ticketFormHTML(btnLabel) {
   return `<form class="ticket-form" novalidate>
     <div class="field">
       <label for="f-flight">Số hiệu chuyến bay</label>
-      <input type="text" id="f-flight" name="flightNo" placeholder="VD: VN36" autocapitalize="characters" autocorrect="off" required>
+      <input type="text" id="f-flight" name="flightNo" placeholder="VD: VN36" autocapitalize="characters" autocorrect="off">
     </div>
     <div class="field-row">
-      <div class="field"><label for="f-date">Ngày hạ cánh ở Tân Sơn Nhất</label><input type="date" id="f-date" name="landingDate" required></div>
-      <div class="field"><label for="f-time">Giờ hạ cánh <small>(giờ Việt Nam)</small></label><input type="time" id="f-time" name="landingTime" required></div>
+      <div class="field"><label for="f-date">Ngày em về tới đây*</label><input type="date" id="f-date" name="landingDate" required></div>
+      <div class="field"><label for="f-time">Giờ hạ cánh* <small>(giờ Việt Nam)</small></label><input type="time" id="f-time" name="landingTime" required></div>
     </div>
     <div class="field-row">
-      <div class="field"><label for="f-ref">Mã đặt chỗ</label><input type="text" id="f-ref" name="bookingRef" placeholder="VD: ABC123" autocapitalize="characters" autocorrect="off" required></div>
+      <div class="field"><label for="f-ref">Mã đặt chỗ*</label><input type="text" id="f-ref" name="bookingRef" placeholder="VD: ABC123" autocapitalize="characters" autocorrect="off" required></div>
       <div class="field"><label for="f-seat">Số ghế <small>(nếu có)</small></label><input type="text" id="f-seat" name="seat" placeholder="Chưa có thì để trống" autocapitalize="characters"></div>
     </div>
     <div class="field">
-      <label for="f-file">Ảnh hoặc PDF vé máy bay</label>
+      <label for="f-file">Ảnh hoặc PDF vé máy bay*</label>
       <input type="file" id="f-file" name="file" class="file-input" accept="image/*,application/pdf" required>
-      <p class="note">Chỉ anh xem được. Nếu bay nối chuyến, em nhập chuyến cuối cùng về Tân Sơn Nhất nhé.</p>
+      <p class="note">Em yên tâm là thông tin này chỉ mình anh xem được nha.</p>
     </div>
     <button type="submit" class="btn wide">${btnLabel}</button>
   </form>`;
@@ -435,8 +435,8 @@ function ticketFormHTML(btnLabel) {
 function viewWon() {
   return `<section class="block">
     ${giftHTML(false, dropGift)}
-    <p class="won-title">Đúng rồi đó!</p>
-    <p class="won-text">Nhưng hộp quà này được buộc rất chặt. Gửi anh vé máy bay về nhà, quà sẽ tự mở.</p>
+    <p class="won-title">Em đoán đúng rồi đó!</p>
+    <p class="won-text">Nhưng hộp quà này được buộc rất chặt. Em gửi anh vé máy bay về nhà, quà sẽ tự mở.</p>
     ${ticketFormHTML('Gửi vé và mở quà')}
   </section>`;
 }
