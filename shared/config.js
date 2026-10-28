@@ -6,7 +6,7 @@ window.SHARED_CONFIG = {
 
   // Apps Script "Web app" URL (ends in /exec) of the Hai nửa backend.
   // It also handles sign-in for every page here. While empty, the site runs in preview mode.
-  AUTH_API_URL: '',
+  AUTH_API_URL: 'https://script.google.com/macros/s/AKfycbxUYezPikcTMUcO_6qUGZpoRaRwG-2DH77yzUD0o85tdQq9mnTIy5uEMuZWFhSjbYbkEQ/exec',
 
   // First screen.
   INVITE_TITLE: 'Thư ơi, chơi cùng anh nhé?',
