@@ -1,0 +1,171 @@
+/* Home page: two halves (pink for Luân, orange for Thư) joined by the red thread. */
+
+:root {
+  --ink: #2A1F2D;
+  --muted: #6E6475;
+  --thread: #C8102E;
+  --shared: #6A3FA0;
+  --paper: #FFFDF9;
+  --line: #ECE4EF;
+  --pink: #F6D3E4;
+  --orange: #FCD5B5;
+  --font-ui: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-hand: 'Patrick Hand', 'Be Vietnam Pro', cursive;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--pink);
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+button, input { font: inherit; color: inherit; }
+h1, h2, p { margin: 0; }
+:focus-visible { outline: 3px solid var(--thread); outline-offset: 3px; }
+
+.halves-bg { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
+.halves-bg::before { content: ''; background: var(--pink); }
+.halves-bg::after { content: ''; background: var(--orange); }
+.thread-bg { position: fixed; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--thread); }
+
+.gate {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 20px 64px;
+}
+
+.card {
+  position: relative;
+  width: min(100%, 28rem);
+  background: var(--paper);
+  border-radius: 6px;
+  padding: 46px 36px 34px;
+  box-shadow: 0 1px 0 rgba(42, 31, 45, .06), 0 24px 48px -28px rgba(42, 31, 45, .5);
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 16px; left: 50%;
+  width: 10px; height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: var(--thread);
+}
+.card h1 {
+  font-size: clamp(1.9rem, 6vw, 2.4rem);
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin-bottom: 14px;
+}
+.lede { color: var(--muted); margin-bottom: 26px; max-width: 36ch; }
+
+label { display: block; font-weight: 600; font-size: .92rem; margin: 0 0 6px; }
+input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid #D6CEDC;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 1rem;
+}
+input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(42, 31, 45, .12); }
+#code { font-size: 1.3rem; letter-spacing: .12em; text-align: center; }
+.form-error { min-height: 1.4em; margin: 8px 0 4px; color: #A3122A; font-size: .92rem; font-weight: 500; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 8px;
+  padding: 13px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--thread);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform .12s ease, opacity .12s ease;
+}
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .55; cursor: progress; }
+
+.link {
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.gate-links { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; font-size: .92rem; color: var(--muted); flex-wrap: wrap; }
+
+/* Home list: each thing is a row you tap to open. */
+.things { list-style: none; margin: 0 0 8px; padding: 0; border-top: 1px solid var(--line); }
+.things li { border-bottom: 1px solid var(--line); }
+.things a {
+  display: block;
+  padding: 16px 4px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 6px;
+}
+.things a:hover .thing-title { text-decoration: underline; text-underline-offset: 3px; }
+.thing-title { display: block; font-weight: 700; font-size: 1.12rem; }
+.thing-text { display: block; color: var(--muted); font-size: .95rem; }
+.thing-locked { display: block; padding: 16px 4px; }
+.thing-locked .thing-title { color: var(--muted); }
+.thing-status { display: block; margin-top: 6px; font-size: .9rem; font-weight: 600; color: var(--shared); font-variant-numeric: tabular-nums; }
+
+.letter { font-family: var(--font-hand); font-size: 1.4rem; line-height: 1.38; margin-bottom: 24px; }
+
+.home-foot { display: flex; justify-content: flex-end; margin-top: 14px; font-size: .92rem; color: var(--muted); }
+
+.preview-banner {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 40;
+  padding: 8px 16px;
+  background: #FFF3C4;
+  color: #4A3B00;
+  font-size: .82rem;
+  text-align: center;
+}
+
+.toast {
+  position: fixed;
+  left: 50%; bottom: 24px;
+  transform: translate(-50%, 20px);
+  z-index: 50;
+  max-width: calc(100% - 32px);
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: .93rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.is-preview .toast { bottom: 56px; }
+
+@media (max-width: 440px) {
+  .card { padding: 42px 22px 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}

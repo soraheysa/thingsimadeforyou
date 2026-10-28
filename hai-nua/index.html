@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F6D3E4">
+  <title>Hai nửa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;800&family=Patrick+Hand&display=swap&subset=vietnamese" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <p class="preview-banner" id="preview-banner" hidden>Chế độ xem thử với dữ liệu giả, mã nào cũng được. Đăng nhập bằng email có chữ “luan” để xem phía của Luân.</p>
+
+  <p class="loading" id="loading">Đang mở nhật ký…</p>
+
+  <!-- Nhật ký -->
+  <div class="app" id="app" hidden>
+    <header class="bar">
+      <a class="brand app-name" id="brand" href="../" title="Về trang chính"></a>
+      <nav class="bar-actions" aria-label="Nhật ký">
+        <button class="chip-btn" id="btn-plans" type="button">Hẹn nhau<span class="badge" id="plans-badge" hidden></span></button>
+        <button class="chip-btn" id="btn-history" type="button">Những ngày trước</button>
+        <button class="chip-btn" id="btn-signout" type="button">Đăng xuất</button>
+      </nav>
+    </header>
+
+    <div class="halves">
+      <section class="half" data-side="left"></section>
+      <div class="seam">
+        <div class="thread" aria-hidden="true"></div>
+        <div class="knot" id="couple-slot"></div>
+      </div>
+      <section class="half" data-side="right"></section>
+    </div>
+  </div>
+
+  <dialog class="sheet" id="dlg-plans" aria-labelledby="plans-title">
+    <div class="sheet-head">
+      <h2 id="plans-title">Hẹn nhau</h2>
+      <button class="link" type="button" data-close>Đóng</button>
+    </div>
+    <ul class="plan-list" id="plan-list"></ul>
+    <form class="plan-form" id="form-plan" novalidate>
+      <h3>Rủ một việc</h3>
+      <label for="plan-title">Làm gì</label>
+      <input id="plan-title" maxlength="80" required placeholder="Nấu cùng một món qua video call">
+      <div class="row">
+        <div>
+          <label for="plan-when" id="plan-when-label">Khi nào</label>
+          <input id="plan-when" type="datetime-local" required>
+        </div>
+        <div>
+          <label for="plan-duration">Bao lâu</label>
+          <select id="plan-duration">
+            <option value="30">30 phút</option>
+            <option value="60" selected>1 tiếng</option>
+            <option value="120">2 tiếng</option>
+            <option value="180">3 tiếng</option>
+            <option value="240">4 tiếng</option>
+            <option value="1440">Cả ngày</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint" id="plan-when-other"></p>
+      <label for="plan-place">Ở đâu</label>
+      <input id="plan-place" maxlength="120" placeholder="Video call, quán cà phê, võ đường">
+      <label for="plan-note">Ghi chú</label>
+      <textarea id="plan-note" rows="2" maxlength="280"></textarea>
+      <p class="form-error" id="plan-error" role="alert"></p>
+      <button class="btn btn-ink" type="submit">Gửi lời rủ</button>
+    </form>
+  </dialog>
+
+  <dialog class="sheet" id="dlg-history" aria-labelledby="history-title">
+    <div class="sheet-head">
+      <h2 id="history-title">Những ngày trước</h2>
+      <button class="link" type="button" data-close>Đóng</button>
+    </div>
+    <ol class="history" id="history-list"></ol>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="../shared/config.js"></script>
+  <script src="../shared/mock.js"></script>
+  <script src="../shared/auth.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

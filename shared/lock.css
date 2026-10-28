@@ -1,0 +1,41 @@
+/* "Trò này chưa ra mắt" screen, laid over any app page before its release date.
+   Every class starts with tl- so it never mixes with the app's own styles. */
+.tl-root {
+  position: fixed; inset: 0; z-index: 2147483000;
+  overflow: auto;
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 16px; line-height: 1.55; color: #2A1F2D;
+  -webkit-font-smoothing: antialiased;
+}
+.tl-root *, .tl-root *::before, .tl-root *::after { box-sizing: border-box; }
+.tl-half { position: fixed; top: 0; bottom: 0; width: 50%; }
+.tl-left { left: 0; background: #F6D3E4; }
+.tl-right { right: 0; background: #FCD5B5; }
+.tl-thread { position: fixed; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: #C8102E; }
+.tl-wrap { position: relative; min-height: 100%; display: grid; place-items: center; padding: 24px 20px; }
+.tl-card {
+  position: relative;
+  width: min(100%, 28rem);
+  background: #FFFDF9;
+  border-radius: 6px;
+  padding: 46px 36px 34px;
+  box-shadow: 0 1px 0 rgba(42, 31, 45, .06), 0 24px 48px -28px rgba(42, 31, 45, .5);
+}
+.tl-card::before {
+  content: ''; position: absolute; top: 16px; left: 50%;
+  width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #C8102E;
+}
+.tl-title { margin: 0 0 14px; font-size: clamp(1.9rem, 6vw, 2.4rem); line-height: 1.12; font-weight: 800; letter-spacing: -0.025em; color: #2A1F2D; }
+.tl-lede { margin: 0 0 24px; color: #6E6475; }
+.tl-count { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.tl-count div { display: grid; justify-items: center; padding: 12px 4px; border-radius: 10px; background: #F6EEF7; }
+.tl-count b { font-size: clamp(1.6rem, 7vw, 2.1rem); font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: #6A3FA0; }
+.tl-count span { font-size: .82rem; color: #6E6475; }
+.tl-btn {
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 22px; padding: 13px 24px;
+  border-radius: 999px; background: #C8102E; color: #fff;
+  font-weight: 600; text-decoration: none;
+}
+.tl-btn:focus-visible { outline: 3px solid #C8102E; outline-offset: 3px; }
+@media (max-width: 440px) { .tl-card { padding: 42px 22px 28px; } }

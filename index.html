@@ -1,770 +1,241 @@
 <!doctype html>
 <html lang="vi">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#13233a">
-<title>Gửi Thư</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --sky: #1B133A;
-    --sky-deep: #1C0C28;
-    --frost: #e9eef5;
-    --mist: #A38EB8;
-    --dim: #422A58;
-    --amber: #f0b45a;
-    --amber-deep: #d8963c;
-    --amber-soft: rgba(240, 180, 90, .14);
-    --gift: #F86C00;
-    --gift-lid: #DF5200;
-    --ui: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
-    --hand: 'Patrick Hand', 'Be Vietnam Pro', cursive;
-    color-scheme: dark;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; }
-  body {
-    min-height: 100vh;
-    background-color: var(--sky-deep);
-    color: var(--frost);
-    font-family: var(--ui);
-    font-size: 16px;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-  body::before { content: ''; position: fixed; inset: 0; z-index: -1; background: radial-gradient(120% 70% at 50% -10%, #1d3352 0%, var(--sky) 45%, var(--sky-deep) 100%); }
-  #snow { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 6px; }
-  [hidden] { display: none !important; }
-
-  /* ── Layout ── */
-  .app { position: relative; z-index: 1; max-width: 520px; margin: 0 auto; padding: max(24px, env(safe-area-inset-top)) 20px 96px; }
-  .clocks { display: flex; gap: 22px; color: var(--mist); font-size: 13px; margin-bottom: 40px; }
-  .clocks b { color: var(--frost); font-weight: 600; font-variant-numeric: tabular-nums; margin-right: 4px; }
-  .hero { margin-bottom: 52px; }
-  .greet { font-family: var(--hand); font-size: 28px; color: var(--amber); margin: 0 0 4px; line-height: 1.2; }
-  h1 { font-size: clamp(28px, 7.4vw, 40px); line-height: 1.15; font-weight: 700; letter-spacing: -.02em; margin: 0 0 14px; }
-  .lede { color: var(--mist); margin: 0; max-width: 34em; }
-  h2 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -.005em; }
-  .block { margin-bottom: 52px; }
-  .block-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 16px; }
-  .block > h2 { margin-bottom: 16px; }
-  .meta { color: var(--mist); font-size: 13px; white-space: nowrap; }
-  .note { color: var(--mist); font-size: 14px; margin: 10px 0 0; }
-  .center { text-align: center; }
-
-  /* ── Hints: words light up like windows at night ── */
-  .hints { list-style: none; margin: 0; padding: 0; counter-reset: h; }
-  .hints li { counter-increment: h; display: grid; grid-template-columns: 22px 1fr; gap: 8px; padding: 12px 0; border-top: 1px solid rgba(142, 160, 184, .14); }
-  .hints li:last-child { border-bottom: 1px solid rgba(142, 160, 184, .14); }
-  .hints li::before { content: counter(h); color: var(--mist); font-size: 13px; padding-top: 3px; }
-  .hints p { margin: 0; font-size: 18px; line-height: 1.9; }
-  .w { margin-right: .32em; }
-  .w.lit { color: var(--amber); text-shadow: 0 0 14px rgba(240, 180, 90, .35); }
-  .w.off { display: inline-block; width: 2.3em; height: .5em; border-radius: 3px; background: var(--dim); vertical-align: middle; }
-  .w.new { animation: light 1.6s ease-out; }
-  @keyframes light {
-    0% { opacity: 0; text-shadow: 0 0 40px rgba(255, 214, 140, 1); }
-    40% { opacity: 1; text-shadow: 0 0 30px rgba(255, 214, 140, .9); }
-    100% { text-shadow: 0 0 14px rgba(240, 180, 90, .35); }
-  }
-
-  /* ── Letters ── */
-  .tiles { display: flex; flex-wrap: wrap; gap: 8px; }
-  .tile { display: grid; place-items: center; width: 38px; height: 44px; border-radius: 7px; background: var(--amber-soft); border: 1px solid rgba(240, 180, 90, .35); color: var(--amber); font-weight: 700; font-size: 19px; }
-
-  /* ── Guess ── */
-  .guess-form { display: flex; gap: 10px; }
-  input, button, select { font: inherit; }
-  input[type=text], input[type=date], input[type=time], .guess-form input {
-    width: 100%; min-width: 0; padding: 12px 14px; border-radius: 10px;
-    background: rgba(233, 238, 245, .05); border: 1px solid var(--dim); color: var(--frost); font-size: 16px;
-  }
-  input::placeholder { color: rgba(142, 160, 184, .75); }
-  input:focus { border-color: var(--amber); outline: none; }
-  .guess-form input { font-size: 19px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 13px 16px; }
-  .guess-form input::placeholder { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 16px; }
-  .btn {
-    flex: none; cursor: pointer; border: 0; border-radius: 10px; padding: 12px 22px;
-    background: var(--amber); color: var(--sky-deep); font-weight: 700; font-size: 16px;
-    transition: transform .12s, background .2s;
-  }
-  .btn:hover { background: #f5c271; }
-  .btn:active { transform: scale(.97); }
-  .btn:disabled { opacity: .55; cursor: default; transform: none; }
-  .btn.wide { width: 100%; padding: 15px; margin-top: 8px; }
-  .today { padding: 16px 18px; border-radius: 12px; background: rgba(233, 238, 245, .04); border: 1px solid var(--dim); }
-  .today .g { font-size: 20px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin: 0 0 4px; }
-  .today p { margin: 0; }
-  .wait { margin: 14px 0 0; color: var(--mist); }
-  .wait b { color: var(--frost); font-variant-numeric: tabular-nums; }
-
-  /* ── History ── */
-  .history { list-style: none; margin: 0; padding: 0; }
-  .history li { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid rgba(142, 160, 184, .12); }
-  .history .n { color: var(--mist); font-size: 13px; }
-  .history .hg { font-weight: 600; text-transform: uppercase; letter-spacing: .03em; overflow-wrap: anywhere; }
-  .history .hl { color: var(--amber); font-size: 14px; letter-spacing: .12em; text-align: right; }
-
-  /* ── The gift: the one bold object ── */
-  .gift { position: relative; width: 168px; height: 180px; margin: 4px auto 30px; transform-origin: 50% 100%; }
-  .gift:not(.open) { animation: tug 5s ease-in-out 1.5s infinite; }
-  .gift.drop { animation: drop .9s cubic-bezier(.2, 1.3, .4, 1); }
-  @keyframes tug { 0%, 84%, 100% { transform: rotate(0); } 87% { transform: rotate(-3.5deg); } 90% { transform: rotate(3.5deg); } 93% { transform: rotate(-1.5deg); } 96% { transform: rotate(0); } }
-  @keyframes drop { from { transform: translateY(-50px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
-  .gift .box { position: absolute; left: 12px; right: 12px; bottom: 0; height: 114px; background: var(--gift); border-radius: 3px 3px 9px 9px; overflow: hidden; box-shadow: inset 0 -14px 0 rgba(0, 0, 0, .14), 0 22px 44px rgba(0, 0, 0, .4); z-index: 2; }
-  .gift .lid { position: absolute; left: 0; right: 0; top: 50px; height: 30px; background: var(--gift-lid); border-radius: 5px; z-index: 3; box-shadow: 0 6px 0 rgba(0, 0, 0, .12); transition: transform 1s cubic-bezier(.25, .9, .3, 1); }
-  .rib-v { position: absolute; top: 0; bottom: 0; left: 50%; width: 20px; margin-left: -10px; background: linear-gradient(90deg, var(--amber) 0 38%, var(--amber-deep) 38% 62%, var(--amber) 62%); }
-  .rib-h { position: absolute; left: 0; right: 0; top: 44%; height: 20px; background: linear-gradient(180deg, var(--amber) 0 38%, var(--amber-deep) 38% 62%, var(--amber) 62%); }
-  .cord { position: absolute; left: -20%; width: 140%; height: 3px; top: 50%; background: var(--amber); opacity: .75; }
-  .cord.a { transform: rotate(27deg); }
-  .cord.b { transform: rotate(-27deg); }
-  .bow { position: absolute; left: 50%; top: -34px; width: 100px; height: 40px; margin-left: -50px; }
-  .bow i { position: absolute; bottom: 0; width: 46px; height: 32px; border: 8px solid var(--amber); }
-  .bow i:first-child { left: 2px; border-radius: 60% 30% 40% 60%; transform: rotate(-14deg); }
-  .bow i:nth-of-type(2) { right: 2px; border-radius: 30% 60% 60% 40%; transform: rotate(14deg); }
-  .bow b { position: absolute; left: 50%; bottom: -5px; width: 20px; height: 17px; margin-left: -10px; background: var(--amber-deep); border-radius: 5px; }
-  .tag { position: absolute; right: -22px; top: 104px; z-index: 4; background: var(--frost); color: var(--sky); font-family: var(--hand); font-size: 15px; line-height: 1; padding: 6px 10px 5px 16px; transform: rotate(9deg); clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%); transition: opacity .4s; }
-  .glow { position: absolute; left: 50%; top: 74px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; z-index: 1; background: radial-gradient(circle, rgba(255, 220, 150, .95), rgba(240, 180, 90, 0) 70%); opacity: 0; transition: opacity .9s .35s, transform 1.4s .35s; }
-  .gift.open .lid { transform: translate(-10px, -64px) rotate(-17deg); }
-  .gift.open .glow { opacity: 1; transform: scale(15); }
-  .gift.open .tag { opacity: 0; }
-
-  .won-title { font-family: var(--hand); font-size: 34px; color: var(--amber); text-align: center; margin: 0 0 6px; line-height: 1.2; }
-  .won-text { text-align: center; color: var(--frost); margin: 0 auto 32px; max-width: 26em; }
-
-  /* ── Ticket form ── */
-  .ticket-form { display: grid; gap: 16px; }
-  .field label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
-  .field label small { color: var(--mist); font-weight: 400; }
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .file-input { display: block; width: 100%; padding: 14px; border: 1px dashed var(--mist); border-radius: 10px; color: var(--mist); font-size: 14px; background: rgba(233, 238, 245, .03); }
-  .file-input::file-selector-button { font: inherit; font-weight: 600; margin-right: 12px; padding: 8px 14px; border: 0; border-radius: 8px; background: var(--dim); color: var(--frost); cursor: pointer; }
-
-  /* ── Arrival ── */
-  .message { font-family: var(--hand); font-size: clamp(26px, 6.6vw, 32px); line-height: 1.3; text-align: center; margin: 0 auto 30px; max-width: 16em; }
-  .countdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
-  .countdown b { display: block; font-size: clamp(34px, 10vw, 48px); font-weight: 700; color: var(--amber); font-variant-numeric: tabular-nums; line-height: 1.1; letter-spacing: -.02em; }
-  .countdown span { color: var(--mist); font-size: 13px; }
-  .flight { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 36px 0 0; padding: 18px 0; border-top: 1px solid rgba(142, 160, 184, .18); border-bottom: 1px solid rgba(142, 160, 184, .18); }
-  .flight dt { color: var(--mist); font-size: 13px; }
-  .flight dd { margin: 2px 0 0; font-weight: 600; font-size: 16px; }
-  details.change { margin-top: 26px; }
-  details.change summary { cursor: pointer; color: var(--mist); font-size: 14px; }
-  details.change[open] summary { margin-bottom: 18px; }
-  .big-count { font-size: clamp(30px, 9vw, 44px); font-weight: 700; color: var(--amber); font-variant-numeric: tabular-nums; margin: 12px 0 0; }
-
-  /* ── Music ── */
-  .music iframe { border-radius: 12px; display: block; }
-  #spotify-embed { min-height: 152px; border-radius: 12px; background: rgba(233, 238, 245, .03); }
-  .sign { font-family: var(--hand); font-size: 26px; color: var(--amber); text-align: right; margin: 0; }
-
-  /* ── Gate ── */
-  .gate { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(12, 24, 40, .9); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: opacity .7s ease .25s; }
-  .gate.opening { opacity: 0; pointer-events: none; }
-  .envelope { position: relative; width: min(340px, 86vw); aspect-ratio: 3 / 2; border: 0; padding: 0; cursor: pointer; background: #580093; border-radius: 10px; box-shadow: 0 30px 70px rgba(0, 0, 0, .45); color: var(--frost); transition: transform .7s cubic-bezier(.3, .8, .3, 1); }
-  .envelope::before { content: ''; position: absolute; inset: 0; border-radius: 10px; background: linear-gradient(to bottom right, transparent 49.6%, rgba(142, 160, 184, .22) 50%, transparent 50.4%), linear-gradient(to bottom left, transparent 49.6%, rgba(142, 160, 184, .22) 50%, transparent 50.4%); }
-  .envelope .to { position: absolute; left: 22px; top: 16px; font-family: var(--hand); font-size: 26px; color: var(--frost); }
-  .envelope .seal { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; background: var(--gift); display: grid; place-items: center; font-size: 22px; color: rgba(233, 238, 245, .85); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, .2), 0 4px 10px rgba(0, 0, 0, .3); transition: transform .5s; }
-  .envelope:hover .seal { transform: scale(1.06); }
-  .gate .tap { position: absolute; left: 0; right: 0; bottom: max(40px, env(safe-area-inset-bottom)); text-align: center; color: var(--mist); font-size: 15px; }
-  .gate.opening .envelope { transform: translateY(-40px) scale(.92); }
-  .gate.opening .seal { transform: scale(0) rotate(40deg); }
-
-  /* ── Toast & demo bar ── */
-  #toast { position: fixed; left: 50%; bottom: 24px; z-index: 30; transform: translate(-50%, 20px); opacity: 0; max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 12px; background: var(--frost); color: var(--sky-deep); font-size: 15px; font-weight: 500; box-shadow: 0 12px 30px rgba(0, 0, 0, .35); transition: opacity .3s, transform .3s; pointer-events: none; }
-  #toast.show { opacity: 1; transform: translate(-50%, 0); }
-  .demo-bar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 15; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; border-radius: 12px; background: #24395a; border: 1px solid #3b5479; font-size: 13px; color: var(--frost); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
-  .demo-bar span { flex: 1 1 200px; }
-  .demo-bar button { border: 0; border-radius: 8px; padding: 6px 12px; background: var(--dim); color: var(--frost); font: inherit; font-weight: 600; cursor: pointer; }
-  body.demo .app { padding-bottom: 150px; }
-
-  @media (max-width: 420px) {
-    .field-row { grid-template-columns: 1fr; }
-    .flight { grid-template-columns: 1fr 1fr; }
-    .tag { right: -10px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F6D3E4">
+  <title>Những thứ anh làm cho em</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Patrick+Hand&display=swap&subset=vietnamese" rel="stylesheet">
+  <link rel="stylesheet" href="shared/hub.css">
 </head>
 <body>
-<canvas id="snow" aria-hidden="true"></canvas>
+  <div class="halves-bg" aria-hidden="true"></div>
+  <div class="thread-bg" aria-hidden="true"></div>
+  <p class="preview-banner" id="preview-banner" hidden>Chế độ xem thử với dữ liệu giả, mã nào cũng được. Đăng nhập bằng email có chữ “luan” để xem phía của Luân.</p>
 
-<div id="gate" class="gate">
-  <button id="envelope" class="envelope" type="button" aria-label="Mở thư">
-    <span class="to">Gửi Thư,</span>
-    <span class="seal" aria-hidden="true">✦</span>
-  </button>
-  <p class="tap">Chạm vào lá thư để mở</p>
-</div>
-
-<main id="app" class="app">
-  <div class="clocks" aria-label="Giờ hai bên">
-    <span><b id="clk-her">--:--</b>bên em</span>
-    <span><b id="clk-me">--:--</b>bên anh</span>
-  </div>
-
-  <header class="hero">
-    <p class="greet">Thư ơi,</p>
-    <h1>Em đoán xem Giáng Sinh này anh tặng em gì?</h1>
-    <p class="lede">Mỗi ngày em được đoán một lần. Đoán sai thì anh sẽ cho em một chữ trong lời gợi ý.</p>
-  </header>
-
-  <div id="phase"><p class="note">Đang mở…</p></div>
-
-  <section class="block music" id="music">
-    <div class="block-head"><h2>Những bài làm anh nhớ em</h2></div>
-    <div id="spotify-embed"></div>
-    <p id="music-note" class="note" hidden></p>
-  </section>
-
-  <p class="sign">gà con của em</p>
-</main>
-
-<div id="toast" role="status" aria-live="polite"></div>
-
-<script>
-/* ═════════════════════ CONFIG — edit these two lines ═════════════════════ */
-const CONFIG = {
-  // Your Apps Script Web app URL (ends with /exec). Leave '' to preview in demo mode.
-  API_URL: 'https://script.google.com/macros/s/AKfycbxiNKLgQZETm-182B8dccnqoIPfR1bTABICoKA0MJ0pipJptqil4aTeEKU3Tqp1ek46/exec',
-  // Your public Spotify playlist link
-  SPOTIFY_PLAYLIST: 'https://open.spotify.com/playlist/7mfox6cotfwXL7eeAHFecT?si=173732492b124390',
-
-  PLAYER_TZ: 'Europe/Berlin',
-  HOME_TZ: 'Asia/Ho_Chi_Minh',
-  // Format checks in the browser (the server checks again)
-  BOOKING_REF_PATTERN: /^[A-Z0-9]{5,8}$/,
-  FLIGHT_NO_PATTERN: /^[A-Z0-9]{2}\d{1,4}[A-Z]?$/,
-  MAX_UPLOAD_MB: 10
-};
-/* ═════════════════════════════════════════════════════════════════════════ */
-
-const DEMO = !CONFIG.API_URL;
-const PLAYLIST_ID = (CONFIG.SPOTIFY_PLAYLIST.match(/playlist\/([A-Za-z0-9]{16,})/) || [])[1] || '';
-
-/* ── Spotify: load early, start on the envelope tap (browsers need a tap before sound) ── */
-const sp = { ctrl: null, ready: false, want: false, playing: false, fallback: false };
-window.onSpotifyIframeApiReady = (IFrameAPI) => {
-  if (!PLAYLIST_ID || sp.fallback) return;
-  IFrameAPI.createController(document.getElementById('spotify-embed'),
-    { uri: 'spotify:playlist:' + PLAYLIST_ID, width: '100%', height: 352 },
-    (ctrl) => {
-      sp.ctrl = ctrl;
-      ctrl.addListener('ready', () => { sp.ready = true; if (sp.want) tryPlay(); });
-      ctrl.addListener('playback_update', (e) => { sp.playing = !!(e && e.data && !e.data.isPaused); });
-    });
-};
-function tryPlay() {
-  if (sp.ctrl && sp.ready && !sp.playing) { try { sp.ctrl.play(); } catch (_) {} }
-}
-function startMusic() { sp.want = true; tryPlay(); }
-setTimeout(() => {               // if the iFrame API never loads, fall back to a plain embed
-  if (sp.ctrl || !PLAYLIST_ID) return;
-  sp.fallback = true;
-  document.getElementById('spotify-embed').innerHTML =
-    '<iframe src="https://open.spotify.com/embed/playlist/' + PLAYLIST_ID + '?theme=0" width="100%" height="352" frameborder="0" ' +
-    'allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Playlist"></iframe>';
-}, 8000);
-</script>
-<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
-
-<script>
-/* ═════════════════════ App ═════════════════════ */
-const $ = (s, r = document) => r.querySelector(s);
-const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const pad = (n) => String(n).padStart(2, '0');
-
-let state = null;
-let clockSkew = 0;
-let revealIdx = -1;        // index of the hint word that was just lit
-let openOnRender = false;  // play the box-opening animation once
-let dropGift = false;      // play the gift entrance once
-let refreshQueued = false;
-
-/* ── API ── */
-async function api(action, payload = {}) {
-  if (DEMO) return demoApi(action, payload);
-  try {
-    const res = action === 'state'
-      ? await fetch(CONFIG.API_URL + '?action=state&t=' + Date.now())
-      : await fetch(CONFIG.API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // no CORS preflight for Apps Script
-          body: JSON.stringify(Object.assign({ action }, payload))
-        });
-    return await res.json();
-  } catch (_) {
-    return { ok: false, error: 'Có vẻ là không kết nối được. Baby kiểm tra mạng rồi thử lại nhé.' };
-  }
-}
-
-async function refresh() {
-  const s = await api('state');
-  if (s && s.ok) applyState(s);
-  else renderError((s && s.error) || 'Không tải được trò chơi.');
-}
-
-function applyState(s) {
-  if (!s) return;
-  if (s.serverNow) clockSkew = Date.parse(s.serverNow) - Date.now();
-  state = s;
-  render();
-}
-
-/* ── Render ── */
-function render() {
-  const root = $('#phase');
-  const p = state.phase;
-  if (p === 'locked') root.innerHTML = viewLocked();
-  else if (p === 'guessing') root.innerHTML = viewGuessing();
-  else if (p === 'won') root.innerHTML = viewWon();
-  else if (p === 'ticket') root.innerHTML = viewTicket();
-  else if (p === 'landed') root.innerHTML = viewLanded();
-
-  const gf = $('#guess-form');
-  if (gf) gf.addEventListener('submit', onGuess);
-  document.querySelectorAll('.ticket-form').forEach(f => f.addEventListener('submit', onTicket));
-
-  if (openOnRender) {
-    openOnRender = false;
-    const g = $('.gift');
-    if (g) setTimeout(() => g.classList.add('open'), 450);
-  }
-  revealIdx = -1;
-  dropGift = false;
-  tick();
-}
-
-function viewLocked() {
-  return `<section class="block center">
-    <h2>Trò chơi sẽ bắt đầu sau</h2>
-    <p class="big-count" data-countdown="${esc(state.startISO)}"></p>
-  </section>`;
-}
-
-function viewGuessing() {
-  let k = 0;
-  const hints = state.hints.map(words => `<li><p>${words.map(w => {
-    const i = k++;
-    if (w == null) return '<span class="w off" aria-label="chữ chưa mở"></span>';
-    return `<span class="w lit${i === revealIdx ? ' new' : ''}">${esc(w)}</span>`;
-  }).join('')}</p></li>`).join('');
-
-  const letters = state.lettersFound.length
-    ? `<div class="tiles">${state.lettersFound.map(c => `<span class="tile">${esc(c)}</span>`).join('')}</div>
-       <p class="note">Chỉ biết là có trong đáp án, không biết nằm ở đâu.</p>`
-    : `<p class="note">Chưa tìm được chữ nào. Đoán thử một lần là sẽ có.</p>`;
-
-  const todays = state.guesses.filter(g => g.day === state.today);
-  const last = todays[todays.length - 1];
-  const turn = state.usedToday
-    ? `<div class="today">
-         <p class="g">${esc(last ? last.guess : '')}</p>
-         <p>Chưa đúng. ${last && last.letters.length ? 'Trong đáp án có chữ ' + last.letters.map(esc).join(', ') + '.' : 'Không có chữ nào trùng với đáp án.'}</p>
-       </div>
-       <p class="wait">Lượt mới sau <b data-countdown="${esc(state.nextResetISO)}"></b></p>`
-    : `<form id="guess-form" class="guess-form" autocomplete="off">
-         <label for="guess-input" class="sr">Câu trả lời</label>
-         <input id="guess-input" name="guess" maxlength="60" spellcheck="false" autocapitalize="characters" autocorrect="off" placeholder="Viết đáp án bằng tiếng Anh">
-         <button type="submit" class="btn">Đoán</button>
-       </form>
-       <p class="note">Mỗi ngày em có một lượt, qua ngày mới thì em mới đoán tiếp được. Giờ tính theo giờ bên Đức nhé baby.</p>`;
-
-  const history = state.guesses.length ? `<section class="block">
-      <h2>Những lần em đã đoán</h2>
-      <ol class="history">${state.guesses.slice().reverse().map(g => `
-        <li><span class="n">#${g.n}</span><span class="hg">${esc(g.guess)}</span><span class="hl">${g.letters.map(esc).join(' ') || '–'}</span></li>`).join('')}
-      </ol></section>` : '';
-
-  return `
-    <section class="block">
-      <div class="block-head"><h2>Lời gợi ý</h2><span class="meta">${state.revealed}/${state.totalWords} chữ đã sáng</span></div>
-      <ol class="hints">${hints}</ol>
+  <main class="gate">
+    <section class="card" data-screen="invite" hidden>
+      <h1 id="invite-title"></h1>
+      <p id="invite-text" class="lede"></p>
+      <button class="btn" id="btn-accept" type="button"></button>
     </section>
-    <section class="block">
-      <div class="block-head"><h2>Chữ có trong đáp án</h2></div>
-      ${letters}
+
+    <section class="card" data-screen="email" hidden>
+      <h1 id="email-title">Nhập email</h1>
+      <p class="lede" id="email-lede"></p>
+      <form id="form-email" novalidate>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" inputmode="email" required spellcheck="false">
+        <p class="form-error" id="email-error" role="alert"></p>
+        <button class="btn" id="btn-email" type="submit">Gửi mã</button>
+      </form>
     </section>
-    <section class="block">
-      <h2>Lượt hôm nay</h2>
-      ${turn}
+
+    <section class="card" data-screen="code" hidden>
+      <h1>Kiểm tra hộp thư</h1>
+      <p class="lede">Mã đang được gửi tới <b id="code-email"></b>. Tìm thư có tiêu đề “Mã của Hai nửa”. Có thể mất một phút, và đôi khi thư rơi vào mục Spam.</p>
+      <form id="form-code" novalidate>
+        <label for="code">Mã</label>
+        <input id="code" name="code" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" required placeholder="xxx-xxx-xx">
+        <p class="form-error" id="code-error" role="alert"></p>
+        <button class="btn" type="submit">Mở</button>
+      </form>
+      <div class="gate-links">
+        <button class="link" id="btn-resend" type="button">Gửi lại mã</button>
+        <button class="link" id="btn-other-email" type="button">Dùng email khác</button>
+      </div>
     </section>
-    ${history}`;
-}
 
-function giftHTML(open, drop) {
-  return `<div class="gift${open ? ' open' : ''}${drop ? ' drop' : ''}" aria-hidden="true">
-    <div class="glow"></div>
-    <div class="lid"><div class="rib-v"></div><div class="bow"><i></i><i></i><b></b></div></div>
-    <div class="box"><div class="cord a"></div><div class="cord b"></div><div class="rib-v"></div><div class="rib-h"></div></div>
-    <div class="tag">Gửi vé để mở</div>
-  </div>`;
-}
+    <section class="card" data-screen="home" hidden>
+      <h1 id="home-title"></h1>
+      <p class="lede" id="home-lede">Chạm vào một món để mở.</p>
+      <ul class="things" id="things"></ul>
+      <div class="home-foot"><button class="link" id="btn-signout" type="button">Đăng xuất</button></div>
+    </section>
+  </main>
 
-function ticketFormHTML(btnLabel) {
-  return `<form class="ticket-form" novalidate>
-    <div class="field">
-      <label for="f-flight">Số hiệu chuyến bay</label>
-      <input type="text" id="f-flight" name="flightNo" placeholder="VD: VN36" autocapitalize="characters" autocorrect="off">
-    </div>
-    <div class="field-row">
-      <div class="field"><label for="f-date">Ngày em về tới đây*</label><input type="date" id="f-date" name="landingDate" required></div>
-      <div class="field"><label for="f-time">Giờ hạ cánh* <small>(giờ Việt Nam)</small></label><input type="time" id="f-time" name="landingTime" required></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label for="f-ref">Mã đặt chỗ*</label><input type="text" id="f-ref" name="bookingRef" placeholder="VD: ABC123" autocapitalize="characters" autocorrect="off" required></div>
-      <div class="field"><label for="f-seat">Số ghế <small>(nếu có)</small></label><input type="text" id="f-seat" name="seat" placeholder="Chưa có thì để trống" autocapitalize="characters"></div>
-    </div>
-    <div class="field">
-      <label for="f-file">Ảnh hoặc PDF vé máy bay*</label>
-      <input type="file" id="f-file" name="file" class="file-input" accept="image/*,application/pdf" required>
-      <p class="note">Em yên tâm là thông tin này chỉ mình anh xem được nha.</p>
-    </div>
-    <button type="submit" class="btn wide">${btnLabel}</button>
-  </form>`;
-}
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-function viewWon() {
-  return `<section class="block">
-    ${giftHTML(false, dropGift)}
-    <p class="won-title">Em đoán đúng rồi đó!</p>
-    <p class="won-text">Nhưng anh lỡ buộc hộp quà này hơi chặt. Em thử dùng vé chuyến về cà vào coi có đứt mấy sợi dây không nhé.</p>
-    ${ticketFormHTML('Anh Yêu Em')}
-  </section>`;
-}
+  <script src="shared/config.js"></script>
+  <script src="shared/mock.js"></script>
+  <script src="shared/auth.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const C = window.SHARED_CONFIG;
+    const A = window.Auth;
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const next = A.safeNext(new URLSearchParams(location.search).get('next'));
+    let pendingEmail = '';
 
-function viewTicket() {
-  const t = state.ticket;
-  return `<section class="block">
-    ${giftHTML(!openOnRender, false)}
-    <p class="message">${esc(t.message)}</p>
-    <div class="countdown" data-countdown="${esc(t.landingISO)}" data-format="dhms" role="timer">
-      <div><b data-u="d">0</b><span>ngày</span></div>
-      <div><b data-u="h">00</b><span>giờ</span></div>
-      <div><b data-u="m">00</b><span>phút</span></div>
-      <div><b data-u="s">00</b><span>giây</span></div>
-    </div>
-    <p class="note center">cho tới lúc em hạ cánh ở Tân Sơn Nhất</p>
-    <dl class="flight">
-      <div><dt>Chuyến bay</dt><dd>${esc(t.flightNo)}</dd></div>
-      <div><dt>Hạ cánh, giờ VN</dt><dd>${esc(t.landingDisplay)}</dd></div>
-      <div><dt>Ghế</dt><dd>${esc(t.seat) || 'Chưa có'}</dd></div>
-    </dl>
-    <details class="change"><summary>Đổi sang chuyến bay khác?</summary>${ticketFormHTML('Cập nhật vé')}</details>
-  </section>`;
-}
-
-function viewLanded() {
-  return `<section class="block">
-    ${giftHTML(true, false)}
-    <p class="message">Em về tới nhà rồi.</p>
-    <p class="message">${esc(state.ticket.message)}</p>
-  </section>`;
-}
-
-function renderError(msg) {
-  $('#phase').innerHTML = `<section class="block"><p class="note">${esc(msg)}</p>
-    <button class="btn" type="button" id="retry">Thử lại</button></section>`;
-  $('#retry').addEventListener('click', refresh);
-}
-
-/* ── Actions ── */
-async function onGuess(e) {
-  e.preventDefault();
-  const input = $('#guess-input');
-  const btn = e.target.querySelector('button');
-  const guess = input.value.trim();
-  if (!guess) { input.focus(); return; }
-  btn.disabled = true; btn.textContent = '…';
-  const before = state.revealed;
-  const r = await api('guess', { guess });
-  if (!r.ok) {
-    toast(r.error);
-    if (r.state) applyState(r.state); else { btn.disabled = false; btn.textContent = 'Đoán'; }
-    return;
-  }
-  if (r.result.correct) {
-    dropGift = true;
-    applyState(r.state);
-    window.scrollTo({ top: $('#phase').offsetTop - 20, behavior: 'smooth' });
-    return;
-  }
-  revealIdx = r.state.revealed > before ? r.state.revealed - 1 : -1;
-  applyState(r.state);
-  toast(revealIdx >= 0 ? 'Chưa đúng. Anh vừa thắp thêm một chữ.' : 'Chưa đúng rồi.');
-}
-
-async function onTicket(e) {
-  e.preventDefault();
-  const f = e.target;
-  const btn = f.querySelector('button[type=submit]');
-  const val = (n) => (f.elements[n].value || '').trim();
-  const flightNo = val('flightNo').toUpperCase().replace(/[\s-]/g, '');
-  const bookingRef = val('bookingRef').toUpperCase().replace(/\s/g, '');
-  const file = f.elements.file.files[0];
-
-  if (!CONFIG.FLIGHT_NO_PATTERN.test(flightNo)) return toast('Số hiệu chuyến bay chưa đúng (VD: VN36).');
-  if (!val('landingDate') || !val('landingTime')) return toast('Em nhập ngày và giờ hạ cánh giúp anh nhé.');
-  if (!CONFIG.BOOKING_REF_PATTERN.test(bookingRef)) return toast('Mã đặt chỗ cần 5 đến 8 ký tự chữ hoặc số.');
-  if (!file) return toast('Em đính kèm ảnh hoặc PDF vé máy bay nhé.');
-
-  const label = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Đang gửi vé…';
-  try {
-    const filePayload = await fileToPayload(file);
-    const r = await api('ticket', {
-      flightNo, bookingRef, seat: val('seat'),
-      landingDate: val('landingDate'), landingTime: val('landingTime'),
-      file: filePayload
-    });
-    if (!r.ok) { toast(r.error); btn.disabled = false; btn.textContent = label; return; }
-    openOnRender = true;
-    applyState(r.state);
-    window.scrollTo({ top: $('#phase').offsetTop - 20, behavior: 'smooth' });
-  } catch (err) {
-    toast(err.message || 'Gửi vé chưa được, em thử lại nhé.');
-    btn.disabled = false; btn.textContent = label;
-  }
-}
-
-/* ── Ticket file: shrink photos to ~1 MB before upload ── */
-async function fileToPayload(file) {
-  const max = CONFIG.MAX_UPLOAD_MB * 1024 * 1024;
-  const type = file.type || (/\.(heic|heif)$/i.test(file.name) ? 'image/heic' : '');
-  if (type === 'application/pdf') {
-    if (file.size > max) throw new Error('File PDF lớn quá (tối đa ' + CONFIG.MAX_UPLOAD_MB + ' MB).');
-    return { name: file.name, mimeType: type, data: await toBase64(file) };
-  }
-  if (!type.startsWith('image/')) throw new Error('Em chọn ảnh hoặc file PDF nhé.');
-  try {
-    const blob = await downscale(file, 1800, 0.85);
-    return { name: file.name.replace(/\.\w+$/, '') + '.jpg', mimeType: 'image/jpeg', data: await toBase64(blob) };
-  } catch (_) {
-    if (file.size > max) throw new Error('Ảnh lớn quá (tối đa ' + CONFIG.MAX_UPLOAD_MB + ' MB).');
-    return { name: file.name, mimeType: type, data: await toBase64(file) };
-  }
-}
-function downscale(file, maxSide, quality) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      const s = Math.min(1, maxSide / Math.max(img.width, img.height));
-      const c = document.createElement('canvas');
-      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url);
-      c.toBlob(b => (b ? resolve(b) : reject(new Error('encode'))), 'image/jpeg', quality);
+    const ERRORS = {
+      not_invited: 'Trang này chỉ mở cho hai địa chỉ email, và đây không phải một trong hai. Kiểm tra lại chính tả nhé.',
+      cooldown: 'Mã vừa được gửi chưa tới một phút. Kiểm tra hộp thư và mục Spam trước đã.',
+      no_pending: 'Yêu cầu mã này đã hết hạn. Gửi mã mới nhé.',
+      wrong_code: 'Mã chưa đúng. Xem lại email rồi nhập lại.',
+      too_many: 'Nhập sai quá nhiều lần. Đợi 30 phút rồi gửi mã mới.',
+      network: 'Không kết nối được. Kiểm tra mạng rồi thử lại.',
+      auth: 'Thiết bị này đã đăng xuất. Đăng nhập lại bằng email nhé.',
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
-    img.src = url;
-  });
-}
-function toBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result).split(',')[1]);
-    r.onerror = reject;
-    r.readAsDataURL(blob);
-  });
-}
+    const errText = r => ERRORS[r.error] || r.message || 'Có lỗi xảy ra. Thử lại sau chút nữa.';
 
-/* ── Clocks & countdowns ── */
-function timeIn(tz) {
-  return new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
-}
-function tick() {
-  $('#clk-her').textContent = timeIn(CONFIG.PLAYER_TZ);
-  $('#clk-me').textContent = timeIn(CONFIG.HOME_TZ);
-  const now = Date.now() + clockSkew;
-  document.querySelectorAll('[data-countdown]').forEach(el => {
-    const ms = Math.max(0, Date.parse(el.dataset.countdown) - now);
-    const t = Math.floor(ms / 1000);
-    const d = Math.floor(t / 86400), h = Math.floor(t % 86400 / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
-    if (el.dataset.format === 'dhms') {
-      el.querySelector('[data-u=d]').textContent = d;
-      el.querySelector('[data-u=h]').textContent = pad(h);
-      el.querySelector('[data-u=m]').textContent = pad(m);
-      el.querySelector('[data-u=s]').textContent = pad(s);
-    } else {
-      el.textContent = (d ? d + ' ngày ' : '') + pad(h) + ':' + pad(m) + ':' + pad(s);
+    let toastTimer;
+    function toast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
     }
-    if (ms === 0 && !refreshQueued) { refreshQueued = true; setTimeout(() => { refreshQueued = false; refresh(); }, 2500); }
-  });
-}
-setInterval(tick, 1000);
 
-/* ── Toast ── */
-let toastTimer;
-function toast(msg) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 4200);
-}
+    function show(name) {
+      $$('[data-screen]').forEach(s => { s.hidden = s.dataset.screen !== name; });
+      const input = $(`[data-screen="${name}"] input`);
+      if (input) setTimeout(() => input.focus(), 50);
+    }
 
-/* ── Gate ── */
-$('#envelope').addEventListener('click', () => {
-  startMusic();
-  const gate = $('#gate');
-  gate.classList.add('opening');
-  setTimeout(() => gate.remove(), 1100);
-});
+    function showEmail(message) {
+      const saved = A.ls.get('email') || '';
+      $('#email').value = saved;
+      $('#email-title').textContent = saved ? 'Lại gặp nhau rồi' : 'Nhập email';
+      $('#email-lede').textContent = saved
+        ? 'Kiểm tra lại email rồi bấm Tiếp tục.'
+        : 'Mã đăng nhập sẽ được gửi tới địa chỉ này. Mỗi thiết bị chỉ cần nhập mã một lần.';
+      $('#btn-email').textContent = saved ? 'Tiếp tục' : 'Gửi mã';
+      $('#email-error').textContent = message || '';
+      show('email');
+    }
 
-/* ── Snow ── */
-(function snow() {
-  const c = $('#snow');
-  if (!c || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const ctx = c.getContext('2d');
-  let w, h;
-  const flakes = [];
-  function size() {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    w = innerWidth; h = innerHeight;
-    c.width = w * dpr; c.height = h * dpr;
-    c.style.width = w + 'px'; c.style.height = h + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-  size();
-  addEventListener('resize', size);
-  const n = Math.round(Math.min(60, innerWidth / 14));
-  for (let i = 0; i < n; i++) flakes.push({ x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.6 + .5, v: Math.random() * .35 + .15, p: Math.random() * 6.28 });
-  (function frame() {
-    if (!document.hidden) {
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = 'rgba(233, 238, 245, .5)';
-      for (const f of flakes) {
-        f.y += f.v; f.p += .01; f.x += Math.sin(f.p) * .2;
-        if (f.y > h + 4) { f.y = -4; f.x = Math.random() * w; }
-        ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, 6.283); ctx.fill();
+    const STATUS = { building: 'Đang build', idea: 'Mới là ý tưởng' };
+    let homeTimer = null;
+
+    function renderThings() {
+      $('#things').innerHTML = C.THINGS.map(t => {
+        const wait = A.opensIn(t);
+        if (wait || STATUS[t.status]) {
+          const status = wait
+            ? `Trò này chưa ra mắt. Mở sau <span data-opens="${esc(t.path)}">${A.countdownText(wait)}</span>`
+            : STATUS[t.status];
+          return `
+            <li><div class="thing-locked" aria-disabled="true">
+              <span class="thing-title">${esc(t.title)}</span>
+              <span class="thing-text">${esc(t.text)}</span>
+              <span class="thing-status">${status}</span>
+            </div></li>`;
+        }
+        return `
+          <li><a href="${esc(new URL(t.path, A.ROOT).pathname)}">
+            <span class="thing-title">${esc(t.title)}</span>
+            <span class="thing-text">${esc(t.text)}</span>
+          </a></li>`;
+      }).join('');
+    }
+
+    function tickThings() {
+      let opened = false;
+      $$('[data-opens]').forEach(el => {
+        const ms = A.opensIn(A.thing(el.dataset.opens));
+        if (ms) el.textContent = A.countdownText(ms); else opened = true;
+      });
+      if (opened) renderThings();   // a game just opened: turn it into a link
+    }
+
+    function showHome() {
+      if (next) { location.replace(next); return; }
+      const name = A.ls.get('name');
+      const welcome = C.WELCOME && C.WELCOME[A.ls.get('side')];
+      if (welcome) {
+        $('#home-title').textContent = welcome.title;
+        $('#home-lede').textContent = welcome.text;
+        $('#home-lede').className = 'letter';
+      } else {
+        $('#home-title').textContent = name ? `Chào ${name}` : C.SERIES_NAME;
+        $('#home-lede').textContent = name ? `${C.SERIES_NAME}. Chạm vào một món để mở.` : 'Chạm vào một món để mở.';
+        $('#home-lede').className = 'lede';
       }
+      renderThings();
+      clearInterval(homeTimer);
+      homeTimer = setInterval(tickThings, 1000);
+      show('home');
     }
-    requestAnimationFrame(frame);
+
+    async function submitEmail(e) {
+      e.preventDefault();
+      const email = $('#email').value.trim().toLowerCase();
+      const errEl = $('#email-error');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !(A.DEMO && email)) {
+        errEl.textContent = 'Nhập đầy đủ địa chỉ email, ví dụ ten@gmail.com.';
+        return;
+      }
+      errEl.textContent = '';
+      const btn = $('#btn-email');
+      btn.disabled = true;
+
+      // A remembered device skips the code.
+      const saved = A.credentials();
+      if (saved.token && saved.email === email) {
+        const r = await A.call('whoami');
+        if (r.ok) { btn.disabled = false; A.saveSession(email, null, r.me); showHome(); return; }
+        A.ls.del('token');
+      }
+
+      const r = await A.post(window.SHARED_CONFIG.AUTH_API_URL, { action: 'requestCode', email });
+      btn.disabled = false;
+      if (!r.ok && r.error !== 'cooldown') { errEl.textContent = errText(r); return; }
+      pendingEmail = email;
+      $('#code-email').textContent = email;
+      $('#code').value = '';
+      $('#code-error').textContent = r.ok ? '' : errText(r);
+      show('code');
+    }
+
+    async function submitCode(e) {
+      e.preventDefault();
+      const code = $('#code').value.trim();
+      const errEl = $('#code-error');
+      if (!code) { errEl.textContent = 'Nhập mã trong email.'; return; }
+      const btn = $('#form-code button[type=submit]');
+      btn.disabled = true;
+      const r = await A.post(window.SHARED_CONFIG.AUTH_API_URL, {
+        action: 'verify', email: pendingEmail, code, device: navigator.userAgent.slice(0, 120),
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+      btn.disabled = false;
+      if (!r.ok) { errEl.textContent = errText(r); return; }
+      A.saveSession(pendingEmail, r.token, r.me);
+      showHome();
+    }
+
+    $('#btn-accept').addEventListener('click', () => { A.ls.set('accepted', '1'); showEmail(); });
+    $('#form-email').addEventListener('submit', submitEmail);
+    $('#form-code').addEventListener('submit', submitCode);
+    $('#btn-resend').addEventListener('click', async () => {
+      const r = await A.post(window.SHARED_CONFIG.AUTH_API_URL, { action: 'requestCode', email: pendingEmail });
+      $('#code-error').textContent = r.ok ? '' : errText(r);
+      if (r.ok) toast('Mã mới đang trên đường tới.');
+    });
+    $('#btn-other-email').addEventListener('click', () => { A.ls.del('email'); A.ls.del('token'); showEmail(); });
+    $('#btn-signout').addEventListener('click', async () => {
+      await A.call('signOut');
+      A.ls.del('token');
+      A.ss.del('confirmed');
+      showEmail('Đã đăng xuất trên thiết bị này. Email vẫn được giữ lại để lần sau đăng nhập nhanh hơn.');
+    });
+
+    $('#invite-title').textContent = C.INVITE_TITLE;
+    $('#invite-text').textContent = C.INVITE_TEXT;
+    $('#btn-accept').textContent = C.INVITE_BUTTON;
+    if (A.DEMO) { $('#preview-banner').hidden = false; document.body.classList.add('is-preview'); }
+
+    if (A.hasSession() && A.confirmed()) showHome();
+    else if (!A.ls.get('accepted') && !A.ls.get('email')) show('invite');
+    else showEmail();
   })();
-})();
-
-/* ═════════════════════ Demo mode (only when API_URL is empty) ═════════════════════
-   Uses a SAMPLE answer and SAMPLE hints on purpose: the real ones live only in Code.gs,
-   so this page is safe to publish. */
-const DEMO_DATA = {
-  answers: ['SNOW GLOBE'],
-  target: 'SNOW GLOBE',
-  hints: ['Đây là lời gợi ý mẫu số một', 'Gợi ý mẫu thứ hai dài hơn một chút', 'Gợi ý mẫu số ba', 'Gợi ý cuối'],
-  cutoff: '2026-12-24',
-  msgBefore: 'Anh hẹn em Giáng Sinh này tặng em nhé baby',
-  msgFrom: 'Anh sẽ đợi em ở sân bay với món quà Giáng sinh của em nhé'
-};
-const VN_MAP = { a: 'àáạảãâầấậẩẫăằắặẳẵ', e: 'èéẹẻẽêềếệểễ', i: 'ìíịỉĩ', o: 'òóọỏõôồốộổỗơờớợởỡ', u: 'ùúụủũưừứựửữ', y: 'ỳýỵỷỹ', d: 'đ' };
-function normalize(s) {
-  let out = String(s || '').toLowerCase();
-  for (const base in VN_MAP) out = out.replace(new RegExp('[' + VN_MAP[base] + ']', 'g'), base);
-  return out.toUpperCase().replace(/[^A-Z0-9]/g, '');
-}
-const demoStore = {
-  mem: null,
-  load() {
-    try { const s = localStorage.getItem('xmasGuessDemo'); if (s) return JSON.parse(s); } catch (_) {}
-    return this.mem || { dayOffset: 0, guesses: [], ticket: null };
-  },
-  save(s) { this.mem = s; try { localStorage.setItem('xmasGuessDemo', JSON.stringify(s)); } catch (_) {} }
-};
-function fmtVN(d) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: CONFIG.HOME_TZ, hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })
-    .formatToParts(d).map(x => [x.type, x.value]));
-  return `${p.hour}:${p.minute}, ${p.day}/${p.month}/${p.year}`;
-}
-function demoState(s) {
-  const simNow = new Date(Date.now() + s.dayOffset * 86400000);
-  const today = simNow.toLocaleDateString('en-CA', { timeZone: CONFIG.PLAYER_TZ });
-  const words = DEMO_DATA.hints.map(h => h.split(/\s+/));
-  const total = words.flat().length;
-  const wrong = s.guesses.filter(g => !g.correct).length;
-  let i = 0;
-  const midnight = new Date(simNow); midnight.setHours(24, 0, 0, 0);
-  const st = {
-    ok: true, serverNow: new Date().toISOString(), today,
-    guesses: s.guesses.map((g, k) => Object.assign({ n: k + 1 }, g)),
-    lettersFound: [...new Set(s.guesses.flatMap(g => g.letters))].sort(),
-    hints: words.map(ws => ws.map(w => (i++ < wrong ? w : null))),
-    revealed: Math.min(wrong, total), totalWords: total,
-    usedToday: s.guesses.some(g => g.day === today),
-    nextResetISO: new Date(midnight.getTime() - s.dayOffset * 86400000).toISOString()
-  };
-  if (!s.guesses.some(g => g.correct)) return Object.assign(st, { phase: 'guessing' });
-  if (!s.ticket) return Object.assign(st, { phase: 'won' });
-  const landing = new Date(s.ticket.landingLocal.replace(' ', 'T') + ':00+07:00');
-  st.ticket = {
-    flightNo: s.ticket.flightNo, seat: s.ticket.seat,
-    landingISO: landing.toISOString(), landingDisplay: fmtVN(landing),
-    message: s.ticket.landingLocal.slice(0, 10) < DEMO_DATA.cutoff ? DEMO_DATA.msgBefore : DEMO_DATA.msgFrom
-  };
-  st.phase = Date.now() >= landing ? 'landed' : 'ticket';
-  return st;
-}
-async function demoApi(action, p) {
-  await new Promise(r => setTimeout(r, 250));
-  const s = demoStore.load();
-  const st = demoState(s);
-  if (action === 'state') return st;
-  if (action === 'guess') {
-    if (st.phase !== 'guessing') return { ok: false, error: 'Em đoán đúng rồi mà 🎁', state: st };
-    if (st.usedToday) return { ok: false, error: 'Hôm nay em đoán rồi, mai quay lại nhé.', state: st };
-    const raw = String(p.guess || '').trim().slice(0, 80);
-    const norm = normalize(raw);
-    if (!norm) return { ok: false, error: 'Em chưa nhập gì cả.', state: st };
-    const correct = DEMO_DATA.answers.map(normalize).includes(norm);
-    const target = new Set(normalize(DEMO_DATA.target));
-    const letters = [...new Set(norm)].filter(c => target.has(c)).sort();
-    s.guesses.push({ day: st.today, guess: raw, correct, letters });
-    demoStore.save(s);
-    return { ok: true, result: { guess: raw, correct, letters }, state: demoState(s) };
-  }
-  if (action === 'ticket') {
-    if (st.phase !== 'won' && st.phase !== 'ticket') return { ok: false, error: 'Em cần đoán đúng trước đã 😉', state: st };
-    const landingLocal = p.landingDate + ' ' + p.landingTime;
-    if (new Date(landingLocal.replace(' ', 'T') + ':00+07:00') <= new Date()) return { ok: false, error: 'Giờ hạ cánh phải ở tương lai nha.' };
-    s.ticket = { flightNo: p.flightNo, seat: String(p.seat || '').toUpperCase(), landingLocal };
-    demoStore.save(s);
-    return { ok: true, state: demoState(s) };
-  }
-  return { ok: false, error: 'Unknown action' };
-}
-function mountDemoBar() {
-  document.body.classList.add('demo');
-  const bar = document.createElement('div');
-  bar.className = 'demo-bar';
-  bar.innerHTML = '<span><b>Demo mode</b>, sample answer: SNOW GLOBE. Real answer and hints live only in Code.gs.</span>' +
-    '<button type="button" data-a="day">Next day</button><button type="button" data-a="reset">Reset</button>';
-  bar.addEventListener('click', (e) => {
-    const a = e.target.dataset.a;
-    if (!a) return;
-    const s = demoStore.load();
-    if (a === 'day') s.dayOffset++;
-    demoStore.save(a === 'reset' ? { dayOffset: 0, guesses: [], ticket: null } : s);
-    refresh();
-  });
-  document.body.appendChild(bar);
-  if (!PLAYLIST_ID) {
-    const n = $('#music-note');
-    n.hidden = false;
-    n.textContent = 'Paste your Spotify playlist link into SPOTIFY_PLAYLIST in index.html to show the player.';
-  }
-}
-
-/* ── Boot ── */
-if (DEMO) mountDemoBar();
-if (!DEMO && !PLAYLIST_ID) $('#music').hidden = true;
-tick();
-refresh();
-</script>
+  </script>
 </body>
 </html>
