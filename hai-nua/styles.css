@@ -11,8 +11,8 @@
   --line: #E4DDE8;
   --font-ui: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-hand: 'Patrick Hand', 'Be Vietnam Pro', 'Comic Sans MS', cursive;
-  --lbg: #F6D3E4;
-  --rbg: #FCD5B5;
+  --lbg: #FF9DD1;
+  --rbg: #E07306;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -25,7 +25,7 @@ body {
   font-size: 16px;
   line-height: 1.55;
   color: var(--ink-base);
-  background: #F3E3EE;
+  background: #FF9DD1;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -96,8 +96,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
   overflow: auto;
 }
 .gate-half { position: fixed; top: 0; bottom: 0; width: 50%; }
-.gate-left { left: 0; background: #F6D3E4; }
-.gate-right { right: 0; background: #FCD5B5; }
+.gate-left { left: 0; background: #FF9DD1; }
+.gate-right { right: 0; background: #E07306; }
 .gate-thread {
   position: fixed;
   top: 0; bottom: 0; left: 50%;
@@ -363,12 +363,13 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 
 /* The other person's slip when they keep it private: folded, with a red seal */
 .slip-sealed { cursor: default; }
-.slip-sealed .slip-closed { justify-content: flex-start; align-items: center; }
+.slip-sealed .slip-closed { position: relative; flex-direction: column; align-items: flex-start; gap: 2px; padding-right: 48px; }
 .slip-sealed .slip-closed::after {
   content: '';
-  flex: none;
+  position: absolute;
+  right: 18px; top: 50%;
   width: 16px; height: 16px;
-  margin-left: auto;
+  margin-top: -8px;
   border-radius: 50%;
   background: var(--thread);
   box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .25);

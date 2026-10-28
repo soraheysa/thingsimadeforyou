@@ -9,8 +9,8 @@
 }
 .tl-root *, .tl-root *::before, .tl-root *::after { box-sizing: border-box; }
 .tl-half { position: fixed; top: 0; bottom: 0; width: 50%; }
-.tl-left { left: 0; background: #F6D3E4; }
-.tl-right { right: 0; background: #FCD5B5; }
+.tl-left { left: 0; background: #FF9DD1; }
+.tl-right { right: 0; background: #E07306; }
 .tl-thread { position: fixed; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: #C8102E; }
 .tl-wrap { position: relative; min-height: 100%; display: grid; place-items: center; padding: 24px 20px; }
 .tl-card {

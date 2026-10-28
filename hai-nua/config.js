@@ -30,7 +30,14 @@ window.APP_CONFIG = {
   // Left (Luân): pink with purple ink. Right (Thư): orange with purple ink.
   // Purple, the colour you share, marks everything shared (the joint slip, the plans badge).
   NO_MOOD: {
-    left:  { bg: '#F6D3E4', ink: '#3A1A47', soft: '#FBE7F0' },
-    right: { bg: '#FCD5B5', ink: '#3A1A47', soft: '#FDE7D4' },
+    left:  { bg: '#FF9DD1', ink: '#3A1A47', soft: '#FFC6E5' },
+    right: { bg: '#E07306', ink: '#160719', soft: '#F09A47' },
+  },
+
+  // How a person is called in sentences on the OTHER person's screen.
+  // left: 'gà con' → Thư sees "Cho gà con xem quẻ này", "Lời nhắn cho gà con", "Gà con nhắn em".
+  // Your big name heading stays "Luân". Leave a side out to use the real name.
+  CALL_NAMES: {
+    left: 'gà con',
   },
 };

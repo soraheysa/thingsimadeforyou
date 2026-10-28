@@ -95,9 +95,14 @@
   const noMood = side => (C.NO_MOOD && (C.NO_MOOD[side] || C.NO_MOOD.left)) || C.NO_MOOD;
   const pronounOf = p => (p && p.pronoun) || (p && p.side === 'left' ? 'anh' : 'em');
   const mePerson = () => state.people.find(p => p.isMe) || state.people[0];
-  const otherPerson = () => state.people.find(p => !p.isMe) || state.people[0];
+  const NOBODY = { name: 'người ấy', side: '', isMe: false, pronoun: '', timezone: 'UTC' };
+  const otherPerson = () => state.people.find(p => !p.isMe) || NOBODY;
   const personBySide = side => state.people.find(p => p.side === side) || otherPerson();
   const you = () => pronounOf(mePerson());
+
+  // How the other person is called in sentences on this screen (CALL_NAMES in config.js), e.g. "gà con".
+  const callName = p => (p && !p.isMe && C.CALL_NAMES && C.CALL_NAMES[p.side]) || (p && p.name) || 'người ấy';
+  const CallName = p => cap(callName(p));
 
   // A mood label as seen on one person's half: "Nhớ {them}" → "Nhớ em" on Luân's, "Nhớ anh" on Thư's.
   function moodLabel(m, ownerSide) {
@@ -177,8 +182,8 @@
     return `
       <div class="slip slip-sealed">
         <span class="slip-closed">
-          <span class="slip-title">Quẻ của ${esc(p.name)}</span>
-          <span class="slip-sub">${esc(p.name)} đang giữ riêng</span>
+          <span class="slip-title">Quẻ của ${esc(callName(p))}</span>
+          <span class="slip-sub">${esc(CallName(p))} đang giữ riêng</span>
         </span>
       </div>`;
   }
@@ -191,7 +196,7 @@
 
     const moodNow = mood
       ? `<span class="mood-emoji" aria-hidden="true">${mood.emoji}</span><span class="mood-label">${esc(moodLabel(mood, p.side))}</span>`
-      : `<span class="mood-label is-empty">${p.isMe ? 'Hôm nay chưa chọn tâm trạng' : esc(p.name) + ' chưa chọn tâm trạng'}</span>`;
+      : `<span class="mood-label is-empty">${p.isMe ? 'Hôm nay chưa chọn tâm trạng' : esc(CallName(p)) + ' chưa chọn tâm trạng'}</span>`;
 
     const picker = p.isMe ? `
       <fieldset class="moods">
@@ -207,7 +212,7 @@
 
     const noteBlock = p.isMe ? `
       <div class="note">
-        <label for="note-input">Lời nhắn cho ${esc(other.name)}</label>
+        <label for="note-input">Lời nhắn cho ${esc(callName(other))}</label>
         <textarea id="note-input" rows="3" maxlength="${state.noteMax || 280}" placeholder="Một chuyện nhỏ trong ngày">${esc(note)}</textarea>
         <div class="note-foot">
           <span class="counter" id="note-counter">${note.length} / ${state.noteMax || 280}</span>
@@ -215,8 +220,8 @@
         </div>
       </div>` : `
       <div class="note">
-        <p class="note-heading">${esc(p.name)} nhắn ${esc(youWord)}</p>
-        ${note ? `<p class="note-text">${esc(note)}</p>` : `<p class="note-empty">Hôm nay ${esc(p.name)} chưa nhắn gì.</p>`}
+        <p class="note-heading">${esc(CallName(p))} nhắn ${esc(youWord)}</p>
+        ${note ? `<p class="note-text">${esc(note)}</p>` : `<p class="note-empty">Hôm nay ${esc(callName(p))} chưa nhắn gì.</p>`}
       </div>`;
 
     let slipBlock;
@@ -225,7 +230,7 @@
         ${slipHTML(p.side + '|' + p.dayKey, p.fortune)}
         <button type="button" class="share-toggle" id="btn-share" aria-pressed="${!!p.fortuneShared}">
           <span class="switch" aria-hidden="true"></span>
-          <span>Cho ${esc(other.name)} xem quẻ này</span>
+          <span>Cho ${esc(callName(other))} xem quẻ này</span>
         </button>`;
     } else {
       slipBlock = p.fortune ? slipHTML(p.side + '|' + p.dayKey, p.fortune) : sealedSlipHTML(p);
@@ -264,7 +269,7 @@
     s.people.forEach(p => {
       const el = $(`.half[data-side="${p.side}"]`);
       if (!el) return;
-      const other = s.people.find(x => x !== p) || p;
+      const other = s.people.find(x => x !== p) || NOBODY;
       el.setAttribute('aria-label', 'Nửa của ' + p.name);
       el.classList.toggle('is-me', !!p.isMe);
       const theme = moodOf(p.entry && p.entry.mood);
@@ -352,7 +357,7 @@
     const share = !me.fortuneShared;
     optimistic(m => { m.fortuneShared = share; });
     saveEntry({ shareFortune: share },
-      share ? `Đã cho ${otherPerson().name} xem quẻ hôm nay.` : `Đã giữ quẻ hôm nay cho riêng ${you()}.`);
+      share ? `Đã cho ${callName(otherPerson())} xem quẻ hôm nay.` : `Đã giữ quẻ hôm nay cho riêng ${you()}.`);
   }
 
   /* ───────── Plans ───────── */
@@ -369,9 +374,9 @@
       const start = new Date(p.startISO);
       const creator = personBySide(p.createdBySide);
       let status;
-      if (p.status === 'proposed') status = p.mine ? `Đang chờ ${esc(other.name)} trả lời` : `${esc(creator.name)} rủ ${esc(youWord)}`;
-      else if (p.status === 'accepted') status = p.mine ? `${esc(other.name)} đồng ý rồi` : `${esc(cap(youWord))} đã đồng ý`;
-      else status = p.mine ? `${esc(other.name)} bận mất rồi` : `${esc(cap(youWord))} đã từ chối`;
+      if (p.status === 'proposed') status = p.mine ? `Đang chờ ${esc(callName(other))} trả lời` : `${esc(CallName(creator))} rủ ${esc(youWord)}`;
+      else if (p.status === 'accepted') status = p.mine ? `${esc(CallName(other))} đồng ý rồi` : `${esc(cap(youWord))} đã đồng ý`;
+      else status = p.mine ? `${esc(CallName(other))} bận mất rồi` : `${esc(cap(youWord))} đã từ chối`;
       const actions = !p.mine && p.status === 'proposed'
         ? `<button type="button" class="btn btn-ink btn-sm" data-plan="${esc(p.id)}" data-answer="accepted">Đồng ý</button>
            <button type="button" class="btn btn-ghost btn-sm" data-plan="${esc(p.id)}" data-answer="declined">Từ chối</button>`
@@ -380,7 +385,7 @@
         <li class="plan" data-status="${esc(p.status)}">
           <p class="plan-title">${esc(p.title)}</p>
           <p class="plan-when">${timeIn(start, me.timezone)}, ${dateIn(start, me.timezone)} (giờ của ${esc(youWord)})</p>
-          <p class="plan-when-other">${timeIn(start, other.timezone)}, ${dateIn(start, other.timezone)} ở chỗ ${esc(other.name)}</p>
+          <p class="plan-when-other">${timeIn(start, other.timezone)}, ${dateIn(start, other.timezone)} ở chỗ ${esc(callName(other))}</p>
           ${p.place ? `<p class="plan-place">${esc(p.place)}</p>` : ''}
           ${p.note ? `<p class="plan-note">${esc(p.note)}</p>` : ''}
           <div class="plan-foot"><span class="plan-status">${status}</span><span class="plan-actions">${actions}</span></div>
@@ -395,7 +400,7 @@
     const d = new Date(v);
     if (isNaN(d)) { hint.textContent = ''; return; }
     const o = otherPerson();
-    hint.textContent = `Lúc đó là ${timeIn(d, o.timezone)}, ${dateIn(d, o.timezone)} ở chỗ ${o.name}.`;
+    hint.textContent = `Lúc đó là ${timeIn(d, o.timezone)}, ${dateIn(d, o.timezone)} ở chỗ ${callName(o)}.`;
   }
 
   function openPlans() {
@@ -430,7 +435,7 @@
     updatePlanHint();
     render(r.state);
     renderPlans();
-    toast(`Đã gửi lời rủ. ${otherPerson().name} sẽ thấy ở đây.`);
+    toast(`Đã gửi lời rủ. ${CallName(otherPerson())} sẽ thấy ở đây.`);
   }
 
   async function planAction(action, payload, okMsg) {
@@ -496,7 +501,7 @@
 
       if (e.target.id === 'btn-save-note') {
         const t = $('#note-input');
-        const other = otherPerson().name;
+        const other = CallName(otherPerson());
         saveEntry({ note: t.value }, t.value.trim() ? `Đã lưu. ${other} sẽ thấy lời nhắn ở nửa của ${you()}.` : 'Đã xoá lời nhắn.');
         return;
       }
