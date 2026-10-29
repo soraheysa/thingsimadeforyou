@@ -418,6 +418,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .slip-couple .slip-stamp { border-color: var(--shared); color: var(--shared); }
 .slip-couple .slip-level { color: var(--shared); }
 .slip-couple { box-shadow: inset 0 3px 0 var(--shared), 0 14px 26px -18px rgba(42, 31, 45, .6); }
+/* Unlucky slips (Tiểu hung, Hung, Đại hung): stamped in dark ink instead of red or purple. */
+.slip.is-bad .slip-stamp { border-color: #3B3342; color: #3B3342; }
+.slip.is-bad .slip-level { color: #3B3342; }
 
 /* The page-load moment: the thread draws down, then the shared slip appears. */
 .app .thread { transform: scaleY(0); }

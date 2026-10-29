@@ -9,6 +9,9 @@
     good: { stamp: '吉', label: 'Cát' },
     small: { stamp: '小吉', label: 'Tiểu cát' },
     future: { stamp: '末吉', label: 'Mạt cát' },
+    smallbad: { stamp: '小凶', label: 'Tiểu hung', bad: true },
+    bad: { stamp: '凶', label: 'Hung', bad: true },
+    terrible: { stamp: '大凶', label: 'Đại hung', bad: true },
   };
   const CITY = { 'Asia/Ho_Chi_Minh': 'Sài Gòn', 'Asia/Saigon': 'Sài Gòn' };
 
@@ -165,7 +168,7 @@
     const lv = LEVELS[fortune.level] || LEVELS.good;
     const open = store.get('slip:' + id) === '1';
     return `
-      <button type="button" class="slip ${extraClass || ''}" data-slip="${esc(id)}" aria-expanded="${open}">
+      <button type="button" class="slip ${extraClass || ''}${lv.bad ? ' is-bad' : ''}" data-slip="${esc(id)}" aria-expanded="${open}">
         <span class="slip-closed">
           <span class="slip-title">Quẻ hôm nay</span>
           <span class="slip-sub">Chạm để mở</span>

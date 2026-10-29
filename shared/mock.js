@@ -17,10 +17,13 @@
       ['good', 'Có người ở thật xa đang nghĩ về {you} ngay lúc này. Đúng rồi, chính {other} đó.'],
       ['future', 'Hôm nay kiên nhẫn sẽ được đền đáp. Việc gì chậm thì cứ để nó chậm.'],
       ['small', 'Ăn món gì đó ấm áp. Tâm trạng sẽ đi theo cái bụng.'],
+      ['bad', 'Kế hoạch hôm nay dễ đổ bể. Chuẩn bị sẵn phương án hai.'],
+      ['terrible', 'Quẻ xấu nhất trong ống. Tin tốt là từ đây chỉ có đi lên.'],
     ],
     couple: [
       ['good', 'Cùng một mặt trăng, hai ô cửa sổ. Ngắm trăng rồi chụp gửi nhau.'],
       ['great', 'Hôm nay mấy tiếng chênh lệch giữa hai đứa bỗng ngắn hơn mọi khi.'],
+      ['smallbad', 'Hôm nay lệch nhịp hơn mọi khi: người này rảnh thì người kia bận. Hẹn trước một khung giờ để gọi.'],
     ],
   };
 
