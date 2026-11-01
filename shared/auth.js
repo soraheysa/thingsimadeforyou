@@ -73,7 +73,10 @@
   }
 
   const hasSession = () => { const c = credentials(); return !!(c.email && c.token); };
-  const confirmed = () => CFG.CONFIRM_EMAIL === 'device' || ss.get('confirmed') === '1';
+  // The installed app ("Our Story" on the home screen) counts as a trusted device: it skips the
+  // email step while still signed in. Its own lock is the fingerprint (see shared/pwa.js).
+  const installedApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const confirmed = () => CFG.CONFIRM_EMAIL === 'device' || installedApp || ss.get('confirmed') === '1';
 
   function goHub() {
     location.replace(hubUrl(location.pathname + location.search + location.hash));
@@ -171,7 +174,9 @@
           <a class="tl-btn" href="${new URL('', ROOT).href}">Về trang chính</a>
         </section>
       </div>`;
-    el.querySelector('.tl-lede').textContent = `${t.title} sẽ mở lúc ${openTimeText(t)}.`;
+    // A surprise (THINGS[].teaser) keeps its real name hidden here too.
+    el.querySelector('.tl-lede').textContent = `${t.teaser ? 'Trò này' : t.title} sẽ mở lúc ${openTimeText(t)}.`;
+    if (t.teaser) document.title = 'Our Story';
     document.body.appendChild(el);
     document.documentElement.style.overflow = 'hidden';
 

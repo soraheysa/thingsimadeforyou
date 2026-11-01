@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#FF9DD1">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Our Story">
+  <script src="shared/pwa.js"></script>
   <title>Những thứ anh làm cho em</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -118,13 +125,15 @@
       $('#things').innerHTML = C.THINGS.map(t => {
         const wait = A.opensIn(t);
         if (wait || STATUS[t.status]) {
-          const status = wait
-            ? `Trò này chưa ra mắt. Mở sau <span data-opens="${esc(t.path)}">${A.countdownText(wait)}</span>`
-            : STATUS[t.status];
+          const teaser = wait && t.teaser;   // a surprise: hide the real name and text until it opens
+          const count = `<span data-opens="${esc(t.path)}">${A.countdownText(wait)}</span>`;
+          const status = !wait ? STATUS[t.status]
+            : teaser ? `${esc(teaser.status)} · ${count}`
+            : `Trò này chưa ra mắt. Mở sau ${count}`;
           return `
             <li><div class="thing-locked" aria-disabled="true">
-              <span class="thing-title">${esc(t.title)}</span>
-              <span class="thing-text">${esc(t.text)}</span>
+              <span class="thing-title">${esc(teaser ? teaser.title : t.title)}</span>
+              ${teaser ? '' : `<span class="thing-text">${esc(t.text)}</span>`}
               <span class="thing-status">${status}</span>
             </div></li>`;
         }

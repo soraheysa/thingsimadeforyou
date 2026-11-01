@@ -28,10 +28,25 @@ window.SHARED_CONFIG = {
   // The list on the home page. "path" is the folder in this repo.
   //  opensAt → locked until this moment, with a countdown (ISO time with its UTC offset).
   //            Germany is UTC+01:00 in winter and UTC+02:00 in summer.
+  //  teaser  → while locked, show this title and status instead of the real title and text.
   //  status  → 'building' (Đang build) or 'idea' (Mới là ý tưởng): listed but not clickable.
   THINGS: [
     { path: 'hai-nua/', title: 'Hai nửa', text: 'Nhật ký tâm trạng của hai đứa mình, mỗi ngày một quẻ.' },
     { path: 'qua-giang-sinh/', title: 'Đoán quà Giáng sinh', text: 'Mỗi ngày một lượt đoán món quà anh chuẩn bị cho em.',
       opensAt: '2026-11-02T00:00:00+01:00' },   // 00:00 Monday 2 Nov in Germany = 06:00 in Vietnam
+    { path: 'lang-kinh/', title: 'Lăng kính',
+      text: 'Thế giới của riêng hai đứa mình, nơi mà những khoảnh khắc chỉ mình muốn cho nhau xem.',
+      opensAt: '2026-11-19T00:00:00+07:00',     // 00:00 19 Nov in Vietnam = 18:00 18 Nov in Germany
+      teaser: { title: 'Trò này sẽ được ra mắt sớm thôi nhé', status: 'Coming soon on my birthday' } },
   ],
+
+  // The installed app ("Our Story" on the home screen), see shared/pwa.js.
+  APP: {
+    INSTALL_SIDES: ['right'],                    // who sees the "add to home screen" banner: 'left' Luân, 'right' Thư
+    SUBTITLE: 'Những thứ anh làm cho mình',      // under "Our Story" on the fingerprint screen
+    UNLOCK_TEXT: {                               // above the fingerprint button, by side
+      right: 'Thư yêu của anh chạm vân tay để vào nhé',
+      left: 'Chạm vân tay để vào nhé',
+    },
+  },
 };

@@ -1,0 +1,81 @@
+/* Installed-app layer ("Our Story"): lock screen, install banner, sheet, toast. */
+
+.tim-lock {
+  position: fixed; inset: 0; z-index: 2147483000;
+  display: flex; flex-direction: column; align-items: center;
+  padding: max(96px, env(safe-area-inset-top)) 32px max(36px, env(safe-area-inset-bottom));
+  box-sizing: border-box; overflow-y: auto;
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #FFFFFF; text-align: center;
+  background: linear-gradient(180deg, #971AC1 0%, #5200B0 100%);
+  visibility: visible !important;
+}
+.tim-lock-icon { width: 112px; height: 112px; border-radius: 26px; object-fit: cover; }
+.tim-lock-title { margin: 22px 0 4px; font-size: 26px; font-weight: 700; letter-spacing: .01em; }
+.tim-lock-sub { margin: 0; font-size: 14px; color: #E4D9F7; }
+.tim-lock-gap { flex: 1; min-height: 24px; }
+.tim-lock-msg { margin: 0 0 22px; padding-bottom: 26px; font-size: 16px; }
+.tim-lock-btn {
+  width: 104px; height: 104px; border: 1.5px solid rgba(255, 255, 255, .4); border-radius: 50%;
+  background: rgba(255, 255, 255, .12); color: #FFFFFF; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 10px rgba(255, 255, 255, .05), 0 0 0 22px rgba(255, 255, 255, .03);
+}
+.tim-lock-btn:focus-visible, .tim-lock-link:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 4px; }
+.tim-lock-err { min-height: 1.4em; margin: 18px 0 0; font-size: 14px; color: #FFE0EE; }
+.tim-lock-link {
+  min-height: 44px; padding: 0 12px; border: 0; background: none; cursor: pointer;
+  font: 500 14px 'Be Vietnam Pro', system-ui, sans-serif; color: #E4D9F7; text-decoration: underline;
+}
+.tim-lock-note { margin: 8px 0 0; font-size: 12px; color: #CBBCEB; }
+
+.tim-install {
+  position: fixed; left: 12px; right: 12px; bottom: max(14px, env(safe-area-inset-bottom)); z-index: 2147482000;
+  max-width: 520px; margin: 0 auto;
+  display: flex; align-items: center; gap: 10px; padding: 10px 6px 10px 10px;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #2A1F2D;
+  background: #FFFDF9; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+}
+.tim-install img { flex: none; width: 44px; height: 44px; border-radius: 12px; }
+.tim-install-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tim-install-text strong { font-size: 14px; font-weight: 600; }
+.tim-install-text span { font-size: 12px; color: #6E6475; }
+.tim-install-x {
+  flex: none; width: 44px; height: 44px; border: 0; background: transparent; color: #6E6475; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.tim-btn {
+  flex: none; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px;
+  background: #6A3FA0; color: #FFFFFF; cursor: pointer;
+  font: 600 14px 'Be Vietnam Pro', system-ui, sans-serif;
+}
+.tim-btn-ghost { background: #F4EFF6; color: #2A1F2D; }
+.tim-btn:focus-visible, .tim-install-x:focus-visible { outline: 3px solid #C8102E; outline-offset: 2px; }
+
+.tim-sheet-wrap {
+  position: fixed; inset: 0; z-index: 2147482500;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(20, 10, 40, .5);
+}
+.tim-sheet {
+  width: 100%; max-width: 460px; box-sizing: border-box;
+  padding: 24px 22px max(22px, env(safe-area-inset-bottom));
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #2A1F2D; text-align: center;
+  background: #FFFDF9; border-radius: 24px 24px 0 0;
+}
+@media (min-width: 600px) { .tim-sheet-wrap { align-items: center; } .tim-sheet { border-radius: 24px; } }
+.tim-sheet-icon { width: 64px; height: 64px; border-radius: 16px; }
+.tim-sheet h2 { margin: 14px 0 6px; font-size: 19px; }
+.tim-sheet p { margin: 0 0 20px; font-size: 14px; color: #6E6475; }
+.tim-sheet-actions { display: flex; gap: 10px; justify-content: center; }
+.tim-sheet-actions .tim-btn { flex: 1; }
+
+.tim-toast {
+  position: fixed; left: 50%; bottom: max(84px, calc(env(safe-area-inset-bottom) + 70px)); z-index: 2147483100;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 12px;
+  font: 500 14px 'Be Vietnam Pro', system-ui, sans-serif; color: #FFFFFF; background: #2A1F2D;
+  transition: opacity .2s, transform .2s;
+}
+.tim-toast.show { opacity: 1; transform: translate(-50%, 0); }
