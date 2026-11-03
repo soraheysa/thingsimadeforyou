@@ -55,7 +55,7 @@ window.SHARED_CONFIG = {
       appId: '1:5045486295:web:cee87e9395661a6115e692',
     },
     // Firebase → Project settings → Cloud Messaging → Web Push certificates → Key pair.
-    VAPID_KEY: '',
+    VAPID_KEY: 'BAI_54jJLBUlQ-j7UfFGRDDfNgR3APbNHLtMLCOPSr5ACnBskXa7fgy0LT86mFAb-ccHdqVZssk7jevqIfNI6CU',
     COOLDOWN_SECONDS: 3,   // the heart rests this long after each tap
     POLL_SECONDS: 60,      // how often open pages refresh the counters
   },
