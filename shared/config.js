@@ -47,7 +47,13 @@ window.SHARED_CONFIG = {
     // (in preview mode it works with fake data).
     API_URL: '',
     // Firebase → Project settings → General → Your apps → Web app → firebaseConfig. Public, safe to keep here.
-    FIREBASE: { apiKey: '', authDomain: '', projectId: '', messagingSenderId: '', appId: '' },
+    FIREBASE: {
+      apiKey: 'AIzaSyC2ckH34JOWFbUWC0iGFXNd3ufVRtiUTII',
+      authDomain: 'our-story-74c5d.firebaseapp.com',
+      projectId: 'our-story-74c5d',
+      messagingSenderId: '5045486295',
+      appId: '1:5045486295:web:cee87e9395661a6115e692',
+    },
     // Firebase → Project settings → Cloud Messaging → Web Push certificates → Key pair.
     VAPID_KEY: '',
     COOLDOWN_SECONDS: 3,   // the heart rests this long after each tap
