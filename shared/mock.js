@@ -40,8 +40,8 @@
   }
 
   function load() {
-    try { const db = JSON.parse(localStorage.getItem(KEY)); if (db) return db; } catch (e) { /* fresh */ }
-    const db = { entries: [], plans: [], tokens: {} };
+    try { const db = JSON.parse(localStorage.getItem(KEY)); if (db) { db.misses = db.misses || seedMisses(); return db; } } catch (e) { /* fresh */ }
+    const db = { entries: [], plans: [], tokens: {}, misses: seedMisses() };
     db.entries.push({ dayKey: dayKey('Europe/Berlin'), email: 'thu@demo', mood: 'missing', note: 'Trời ở đây xám quá. Kể em nghe hôm nay anh ăn gì đi.', shareFortune: true });
     db.entries.push({ dayKey: dayKey('Asia/Ho_Chi_Minh'), email: 'luan@demo', mood: 'calm', note: 'Chạy bộ xong rồi. Trên đường về toàn nghĩ tới em.', shareFortune: false });
     const yKey = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
@@ -51,6 +51,17 @@
     db.plans.push({ id: 'p1', createdBy: 'luan@demo', title: 'Xem phim cùng nhau qua video call', startISO: sat.toISOString(), durationMin: 150, place: 'Google Meet', note: 'Lần này em chọn phim nhé.', status: 'proposed' });
     save(db);
     return db;
+  }
+  function seedMisses() {
+    const vn = dayKey('Asia/Ho_Chi_Minh'), de = dayKey('Europe/Berlin');
+    const at = h => new Date(Date.now() - h * 3600e3).toISOString();
+    return [
+      { from: 'right', to: 'left', at: at(5), fromDay: de, toDay: vn, night: false },
+      { from: 'right', to: 'left', at: at(4), fromDay: de, toDay: vn, night: false },
+      { from: 'left', to: 'right', at: at(3), fromDay: vn, toDay: de, night: true },
+      { from: 'left', to: 'right', at: at(2), fromDay: vn, toDay: de, night: true },
+      { from: 'left', to: 'right', at: at(1), fromDay: vn, toDay: de, night: false },
+    ];
   }
   function save(db) { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ } }
   function userFor(email) { return /luan|luân/i.test(email || '') ? USERS[0] : USERS[1]; }
@@ -130,8 +141,47 @@
         if (p.createdBy !== me.email) return err('bad_request', 'Chỉ người rủ mới huỷ được buổi hẹn.');
         p.status = 'cancelled'; save(db); return { ok: true, state: state(db, me) };
       }
+      case 'nhoState': return { ok: true, state: nhoState(db, me) };
+      case 'nhoSend': {
+        const to = USERS.find(u => u !== me);
+        const now = new Date();
+        const last = db.misses.filter(m => m.from === me.side).pop();
+        if (last && now - new Date(last.at) < 3000) return err('too_fast', 'Chậm lại một chút, tim đang bay tới rồi.');
+        const night = asleep(to.side, to.timezone, now);
+        db.misses.push({ from: me.side, to: to.side, at: now.toISOString(), fromDay: dayKey(me.timezone), toDay: dayKey(to.timezone), night });
+        save(db);
+        return { ok: true, silenced: night, pushed: night ? 0 : 1, state: nhoState(db, me) };
+      }
+      case 'pushSave': case 'pushRemove': return { ok: true, state: nhoState(db, me) };
+      case 'pushTest': return { ok: false, error: 'no_push', message: 'Chế độ xem thử không gửi thông báo thật.' };
     }
     return err('bad_request', 'Yêu cầu không hợp lệ.');
+  }
+
+  /* "Nhớ" heart (shared/nho.js). Same sleep times as nho/backend/Code.gs. */
+  const SLEEP = { left: ['00:00', '05:00'], right: ['01:00', '07:00'] };
+  const mins = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+  function asleep(side, tz, date) {
+    const [a, b] = SLEEP[side].map(mins);
+    const [h, m] = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .format(date).split(':').map(Number);
+    const x = h * 60 + m;
+    return a < b ? (x >= a && x < b) : (x >= a || x < b);
+  }
+  function nhoState(db, me) {
+    const myDay = dayKey(me.timezone);
+    const counts = { left: { day: 0, night: 0, total: 0, lastAt: '' }, right: { day: 0, night: 0, total: 0, lastAt: '' } };
+    db.misses.forEach(r => {
+      const c = counts[r.from];
+      c.total++; c.lastAt = r.at;
+      if ((r.to === me.side ? r.toDay : r.fromDay) === myDay) c[r.night ? 'night' : 'day']++;
+    });
+    const person = u => ({
+      side: u.side, name: u.name, pronoun: u.pronoun, tz: u.timezone,
+      localTime: new Intl.DateTimeFormat('en-GB', { timeZone: u.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()),
+      asleep: asleep(u.side, u.timezone, new Date()), sleep: SLEEP[u.side].join('–'), pushOn: true, sent: counts[u.side],
+    });
+    return { me: person(me), other: person(USERS.find(u => u !== me)), dayKey: myDay, pushReady: false };
   }
 
   window.MockBackend = {
