@@ -1,6 +1,9 @@
 /*
  * Settings shared by every page in this repo. This file is public: no emails, no codes.
  */
+// Launch of the "nhớ" heart: 00:00 Saturday 7 Nov in Germany = 06:00 in Vietnam. Used twice below.
+const NHO_OPENS_AT = '2026-11-07T00:00:00+01:00';
+
 window.SHARED_CONFIG = {
   SERIES_NAME: 'Những thứ anh làm cho em',
 
@@ -29,11 +32,16 @@ window.SHARED_CONFIG = {
   //  opensAt → locked until this moment, with a countdown (ISO time with its UTC offset).
   //            Germany is UTC+01:00 in winter and UTC+02:00 in summer.
   //  teaser  → while locked, show this title and status instead of the real title and text.
+  //            teaser.countdown replaces the status line; {time} becomes the countdown.
+  //  hideWhenOpen → drop the item from the list once it opens (for countdowns that aren't pages).
   //  status  → 'building' (Đang build) or 'idea' (Mới là ý tưởng): listed but not clickable.
   THINGS: [
     { path: 'hai-nua/', title: 'Hai nửa', text: 'Nhật ký tâm trạng của hai đứa mình, mỗi ngày một quẻ.' },
     { path: 'qua-giang-sinh/', title: 'Đoán quà Giáng sinh', text: 'Mỗi ngày một lượt đoán món quà anh chuẩn bị cho em.',
       opensAt: '2026-11-02T00:00:00+01:00' },   // 00:00 Monday 2 Nov in Germany = 06:00 in Vietnam
+    // Countdown for the heart (not a page of its own): disappears at launch, when the heart card appears above.
+    { path: 'nho/', title: 'Anh nhớ em', opensAt: NHO_OPENS_AT, hideWhenOpen: true,
+      teaser: { title: 'Tính năng mới sắp được ra mắt', countdown: 'Còn {time} nữa nhé' } },
     { path: 'lang-kinh/', title: 'Lăng kính',
       text: 'Thế giới của riêng hai đứa mình, nơi mà những khoảnh khắc chỉ mình muốn cho nhau xem.',
       opensAt: '2026-11-19T00:00:00+07:00',     // 00:00 19 Nov in Vietnam = 18:00 18 Nov in Germany
@@ -44,7 +52,7 @@ window.SHARED_CONFIG = {
   // Sleep times and Thư's landing time live in the backend: nho/backend/Code.gs and its Script properties.
   NHO: {
     // Hidden until this moment (ISO time with its UTC offset). 00:00 Saturday 7 Nov in Germany = 06:00 in Vietnam.
-    OPENS_AT: '2026-11-07T00:00:00+01:00',
+    OPENS_AT: NHO_OPENS_AT,
     // These sides see it early, to test: 'left' Luân, 'right' Thư.
     EARLY_SIDES: ['left'],
     // Apps Script "Web app" URL (ends in /exec) of nho/backend/Code.gs. While empty, the heart is hidden

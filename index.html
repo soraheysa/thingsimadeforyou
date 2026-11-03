@@ -125,12 +125,13 @@
     let homeTimer = null;
 
     function renderThings() {
-      $('#things').innerHTML = C.THINGS.map(t => {
+      $('#things').innerHTML = C.THINGS.filter(t => !(t.hideWhenOpen && !A.opensIn(t))).map(t => {
         const wait = A.opensIn(t);
         if (wait || STATUS[t.status]) {
           const teaser = wait && t.teaser;   // a surprise: hide the real name and text until it opens
           const count = `<span data-opens="${esc(t.path)}">${A.countdownText(wait)}</span>`;
           const status = !wait ? STATUS[t.status]
+            : teaser && teaser.countdown ? esc(teaser.countdown).replace('{time}', count)
             : teaser ? `${esc(teaser.status)} · ${count}`
             : `Trò này chưa ra mắt. Mở sau ${count}`;
           return `
