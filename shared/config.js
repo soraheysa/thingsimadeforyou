@@ -40,6 +40,20 @@ window.SHARED_CONFIG = {
       teaser: { title: 'Trò này sẽ được ra mắt sớm thôi nhé', status: 'Coming soon on my birthday' } },
   ],
 
+  // The "Anh nhớ em / Em nhớ anh" heart (shared/nho.js), on the home page and in Hai nửa.
+  // Sleep times and Thư's landing time live in the backend: nho/backend/Code.gs and its Script properties.
+  NHO: {
+    // Apps Script "Web app" URL (ends in /exec) of nho/backend/Code.gs. While empty, the heart is hidden
+    // (in preview mode it works with fake data).
+    API_URL: '',
+    // Firebase → Project settings → General → Your apps → Web app → firebaseConfig. Public, safe to keep here.
+    FIREBASE: { apiKey: '', authDomain: '', projectId: '', messagingSenderId: '', appId: '' },
+    // Firebase → Project settings → Cloud Messaging → Web Push certificates → Key pair.
+    VAPID_KEY: '',
+    COOLDOWN_SECONDS: 3,   // the heart rests this long after each tap
+    POLL_SECONDS: 60,      // how often open pages refresh the counters
+  },
+
   // The installed app ("Our Story" on the home screen), see shared/pwa.js.
   APP: {
     INSTALL_SIDES: ['right'],                    // who sees the "add to home screen" banner: 'left' Luân, 'right' Thư
