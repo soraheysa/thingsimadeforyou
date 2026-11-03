@@ -43,6 +43,10 @@ window.SHARED_CONFIG = {
   // The "Anh nhớ em / Em nhớ anh" heart (shared/nho.js), on the home page and in Hai nửa.
   // Sleep times and Thư's landing time live in the backend: nho/backend/Code.gs and its Script properties.
   NHO: {
+    // Hidden until this moment (ISO time with its UTC offset). 00:00 Saturday 7 Nov in Germany = 06:00 in Vietnam.
+    OPENS_AT: '2026-11-07T00:00:00+01:00',
+    // These sides see it early, to test: 'left' Luân, 'right' Thư.
+    EARLY_SIDES: ['left'],
     // Apps Script "Web app" URL (ends in /exec) of nho/backend/Code.gs. While empty, the heart is hidden
     // (in preview mode it works with fake data).
     API_URL: 'https://script.google.com/macros/s/AKfycbxnAfyVvUUmvhM_1px8vsm5vWaOCIgJkvvZ14n615Mc_RaqxJcLqB-YB_bgRjQhVWUa/exec',

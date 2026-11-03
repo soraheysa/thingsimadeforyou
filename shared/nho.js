@@ -22,6 +22,10 @@
   const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
   const COOLDOWN = Math.max(1, CFG.COOLDOWN_SECONDS || 3) * 1000;
   const POLL = Math.max(20, CFG.POLL_SECONDS || 60) * 1000;
+  // Launch date (NHO.OPENS_AT): hidden until then, except for EARLY_SIDES (and preview mode).
+  const OPENS = Date.parse(CFG.OPENS_AT || '') || 0;
+  const isOpen = () => A.DEMO || !OPENS || Date.now() >= OPENS || (CFG.EARLY_SIDES || []).indexOf(A.ls.get('side')) >= 0;
+  let openTimer = null;
 
   const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return ''; } })();
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -290,6 +294,12 @@
 
   function start() {
     if (!ENABLED || !A.hasSession() || !A.confirmed()) return;
+    if (!isOpen()) {
+      // Still before launch: appear by itself at the moment it opens if the page is left open.
+      clearTimeout(openTimer);
+      openTimer = setTimeout(start, Math.min(OPENS - Date.now() + 500, 2147483000));
+      return;
+    }
     if (started) { refresh(); return; }
     started = true;
     document.querySelectorAll('[data-nho]').forEach(skeleton);
