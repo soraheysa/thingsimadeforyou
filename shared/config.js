@@ -45,7 +45,7 @@ window.SHARED_CONFIG = {
   NHO: {
     // Apps Script "Web app" URL (ends in /exec) of nho/backend/Code.gs. While empty, the heart is hidden
     // (in preview mode it works with fake data).
-    API_URL: '',
+    API_URL: 'https://script.google.com/macros/s/AKfycbxnAfyVvUUmvhM_1px8vsm5vWaOCIgJkvvZ14n615Mc_RaqxJcLqB-YB_bgRjQhVWUa/exec',
     // Firebase → Project settings → General → Your apps → Web app → firebaseConfig. Public, safe to keep here.
     FIREBASE: {
       apiKey: 'AIzaSyC2ckH34JOWFbUWC0iGFXNd3ufVRtiUTII',
