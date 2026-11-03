@@ -87,6 +87,16 @@
 .nho-push-btn:focus-visible, .nho-link:focus-visible { outline: 3px solid #C8102E; outline-offset: 2px; }
 .nho-push-note { margin-top: 6px !important; font-size: .84rem; color: var(--nho-muted); }
 .nho-push-btn + .nho-push-note { text-align: center; }
+.nho-push-err {
+  margin-top: 8px !important;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #FDECEE;
+  color: #8A1024;
+  font-size: .8rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
 .nho-push-links { display: flex; gap: 18px; margin-top: 4px; }
 .nho-link {
   min-height: 36px;

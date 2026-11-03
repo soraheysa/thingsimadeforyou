@@ -54,7 +54,8 @@
   let restUntil = 0;
   let pollTimer = null;
   let lastNote = '';          // the line under the heart after a tap
-  let wakeShown = false;      // the "while you slept" line stays for this visit once shown
+  let wakeShown = false;
+  let pushError = '';         // last reason turning notifications on failed      // the "while you slept" line stays for this visit once shown
 
   /* ───────── Drawing ───────── */
 
@@ -128,7 +129,8 @@
     }
     return `
       <button type="button" class="nho-push-btn" data-nho-on>🔔 Bật thông báo trên máy này</button>
-      <p class="nho-push-note">Để biết ngay khi ${esc(callName(o))} nhớ ${esc(state.me.pronoun)}.</p>`;
+      <p class="nho-push-note">Để biết ngay khi ${esc(callName(o))} nhớ ${esc(state.me.pronoun)}.</p>
+      ${pushError ? `<p class="nho-push-err" role="alert">Lỗi ${esc(pushError)}</p>` : ''}`;
   }
 
   function render() {
@@ -225,15 +227,30 @@
 
   /* ───────── Notifications on this device ───────── */
 
+  /** Each step names itself, so a failure says where it stopped (shown under the button). */
+  async function step(name, fn) {
+    try { return await fn(); }
+    catch (e) {
+      const why = [e && e.code, e && e.name !== 'Error' && e.name, e && e.message || String(e)].filter(Boolean).join(' · ');
+      const err = new Error(`[${name}] ${why}`);
+      err.step = name;
+      throw err;
+    }
+  }
+
   async function deviceToken() {
-    await navigator.serviceWorker.register(new URL('sw.js', A.ROOT).href, { scope: A.ROOT.pathname });
-    const reg = await navigator.serviceWorker.ready;
-    const [{ initializeApp, getApps }, { getMessaging, getToken }] = await Promise.all([
+    const reg = await step('service worker', async () => {
+      await navigator.serviceWorker.register(new URL('sw.js', A.ROOT).href, { scope: A.ROOT.pathname });
+      return navigator.serviceWorker.ready;
+    });
+    const [{ initializeApp, getApps }, { getMessaging, getToken }] = await step('tải Firebase', () => Promise.all([
       import(FB_SDK + 'firebase-app.js'),
       import(FB_SDK + 'firebase-messaging.js'),
-    ]);
+    ]));
     const app = getApps().length ? getApps()[0] : initializeApp(FB);
-    return getToken(getMessaging(app), { vapidKey: CFG.VAPID_KEY, serviceWorkerRegistration: reg });
+    const get = () => getToken(getMessaging(app), { vapidKey: CFG.VAPID_KEY, serviceWorkerRegistration: reg });
+    // The very first subscription on a phone sometimes fails once and works on the second try.
+    return step('Firebase token', () => get().catch(() => new Promise(r => setTimeout(r, 1500)).then(get)));
   }
 
   function deviceName() {
@@ -244,9 +261,10 @@
 
   async function savePush(quiet) {
     const token = await deviceToken();
-    if (!token) throw new Error('no token');
+    if (!token) throw new Error('[Firebase token] không nhận được mã');
     const r = await call('pushSave', { token, device: deviceName() });
-    if (!r.ok) throw new Error(r.message || r.error);
+    if (!r.ok) throw new Error(`[lưu vào backend] ${r.error || ''} ${r.message || ''}`.trim());
+    pushError = '';
     A.ls.set('push_token', token);
     A.ls.set('push_saved_at', String(Date.now()));
     state = r.state;
@@ -262,7 +280,8 @@
       await savePush(false);
     } catch (e) {
       console.warn(e);
-      toast('Chưa bật được thông báo. Thử lại sau nhé.');
+      pushError = (e && e.message) || String(e);
+      toast('Chưa bật được thông báo. Lý do ở ngay dưới nút nhé.');
       render();
     }
   }
