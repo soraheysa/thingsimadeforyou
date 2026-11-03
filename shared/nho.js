@@ -27,7 +27,10 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
   const PRONOUN = { left: 'anh', right: 'em' };
-  const EMOJI = { left: '💜', right: '🧡' };
+  const EMOJI = { left: '🩷', right: '🧡' };
+  // How the other person is called on your screen (same idea as CALL_NAMES in hai-nua/config.js).
+  const CALL = Object.assign({ left: 'gà con' }, CFG.CALL_NAMES || {});
+  const callName = p => (p && CALL[p.side]) || (p && p.name) || 'người ấy';
   const otherSide = s => (s === 'left' ? 'right' : 'left');
   const mySide = () => A.ls.get('side') || 'right';
   /** "Anh nhớ em" for a tap sent by `side`. */
@@ -93,9 +96,10 @@
   function subText() {
     if (lastNote) return lastNote;
     const o = state.other;
-    if (o.asleep) return `${o.name} đang ngủ (${o.sleep} giờ bên đó, bây giờ là ${o.localTime}). Tim vẫn được đếm vào ban đêm nhưng không reo.`;
-    if (!o.pushOn && state.pushReady) return `${o.name} chưa bật thông báo, nhưng sẽ thấy số đếm ở đây.`;
-    return `Chạm để ${o.name} nhận được ngay.`;
+    const call = callName(o);
+    if (o.asleep) return `Giờ này là giờ ${call} ngủ (${o.sleep.replace('–', '\u2060–\u2060')}). Tim vẫn sẽ đến bên người ${call} nhưng thông báo sẽ không kêu đâu.`;
+    if (!o.pushOn && state.pushReady) return `${cap(call)} chưa bật thông báo, nhưng sẽ thấy số đếm ở đây.`;
+    return `Chạm để ${call} nhận được ngay.`;
   }
 
   function pushHTML() {
@@ -120,7 +124,7 @@
     }
     return `
       <button type="button" class="nho-push-btn" data-nho-on>🔔 Bật thông báo trên máy này</button>
-      <p class="nho-push-note">Để biết ngay khi ${esc(o.name)} nhớ ${esc(state.me.pronoun)}.</p>`;
+      <p class="nho-push-note">Để biết ngay khi ${esc(callName(o))} nhớ ${esc(state.me.pronoun)}.</p>`;
   }
 
   function render() {
@@ -132,7 +136,7 @@
       el.querySelector('.nho-sub').textContent = subText();
       el.querySelector('.nho-tiles').innerHTML = tileHTML('left') + tileHTML('right');
       el.querySelector('.nho-total').textContent =
-        `Từ trước tới giờ: ${phrase(me.side).toLowerCase()} ${me.sent.total} lần, ${phrase(o.side).toLowerCase()} ${o.sent.total} lần.`;
+        `Hôm nay ${phrase(me.side).toLowerCase()} ${me.sent.day + me.sent.night} lần, ${phrase(o.side).toLowerCase()} ${o.sent.day + o.sent.night} lận.`;
       const push = el.querySelector('.nho-push');
       const html = pushHTML();
       push.hidden = !html;
@@ -207,8 +211,8 @@
     const o = state.other;
     const n = state.me.sent.day + state.me.sent.night;
     lastNote = r.silenced
-      ? `Đã đếm vào ban đêm 🌙 ${o.name} đang ngủ nên điện thoại không reo.`
-      : `Đã gửi tới ${o.name} ${EMOJI[state.me.side]} Lần thứ ${n} hôm nay.`;
+      ? `Tim đã đến bên người ${callName(o)} 🌙 Đang giờ ngủ nên thông báo không kêu đâu.`
+      : `Đã gửi tới ${callName(o)} ${EMOJI[state.me.side]} Lần thứ ${n} hôm nay.`;
     render();
     if (!document.querySelector('[data-nho="panel"]')) toast(lastNote);
     clearTimeout(send.t);
@@ -243,7 +247,7 @@
     A.ls.set('push_saved_at', String(Date.now()));
     state = r.state;
     render();
-    if (!quiet) toast(`Đã bật. Khi ${state.other.name} nhớ ${state.me.pronoun}, máy này sẽ báo.`);
+    if (!quiet) toast(`Đã bật. Khi ${callName(state.other)} nhớ ${state.me.pronoun}, máy này sẽ báo.`);
   }
 
   async function turnOn(btn) {

@@ -56,6 +56,8 @@ window.SHARED_CONFIG = {
     },
     // Firebase → Project settings → Cloud Messaging → Web Push certificates → Key pair.
     VAPID_KEY: 'BAI_54jJLBUlQ-j7UfFGRDDfNgR3APbNHLtMLCOPSr5ACnBskXa7fgy0LT86mFAb-ccHdqVZssk7jevqIfNI6CU',
+    // How the other person is called on your screen, by side (left = Luân). Leave a side out for the real name.
+    CALL_NAMES: { left: 'gà con' },
     COOLDOWN_SECONDS: 3,   // the heart rests this long after each tap
     POLL_SECONDS: 60,      // how often open pages refresh the counters
   },

@@ -29,7 +29,7 @@
 const NH = {
   NAMES: { left: 'Luân', right: 'Thư' },
   PRONOUN: { left: 'anh', right: 'em' },
-  EMOJI: { left: '💜', right: '🧡' },
+  EMOJI: { left: '🩷', right: '🧡' },
 
   // No notification between these local times ("night"). Taps still count, on the night counter.
   // By side, then by timezone; '*' covers any other timezone.
