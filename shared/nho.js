@@ -145,7 +145,7 @@
       const got = o.sent.day + o.sent.night;
       const total = el.querySelector('.nho-total');
       total.hidden = !got;
-      total.textContent = `Hôm nay ${phrase(o.side).toLowerCase()} ${got} lận.`;
+      total.textContent = `Hôm nay ${phrase(o.side).toLowerCase()} ${got} lần.`;
       const push = el.querySelector('.nho-push');
       const html = pushHTML();
       push.hidden = !html;
@@ -218,10 +218,9 @@
     }
     state = r.state;
     const o = state.other;
-    const n = state.me.sent.day + state.me.sent.night;
     lastNote = r.silenced
       ? `Tim đã đến bên người ${callName(o)} 🌙 Đang giờ ngủ nên thông báo không kêu đâu.`
-      : `Đã gửi tới ${callName(o)} ${EMOJI[state.me.side]} Lần thứ ${n} hôm nay.`;
+      : `Đã gửi tới ${callName(o)} ${EMOJI[state.me.side]}`;
     render();
     if (!document.querySelector('[data-nho="panel"]')) toast(lastNote);
     clearTimeout(send.t);
