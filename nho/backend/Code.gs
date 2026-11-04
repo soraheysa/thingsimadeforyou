@@ -161,7 +161,8 @@ const ACTIONS = {
 
   /** Save this device's notification address (FCM token). */
   pushSave(req, me) {
-    const token = String(req.token || '').trim();
+    // req.token is the sign-in token; the device's FCM token comes as pushToken.
+    const token = String(req.pushToken || '').trim();
     if (!/^[\w:.-]{20,4096}$/.test(token)) return bad_('Thiếu mã thông báo của thiết bị.');
     const device = clean_(req.device, 120);
     const now = new Date().toISOString();
@@ -175,7 +176,7 @@ const ACTIONS = {
 
   /** Stop notifications on this device. */
   pushRemove(req, me) {
-    const token = String(req.token || '').trim();
+    const token = String(req.pushToken || '').trim();
     withLock_(() => {
       rows_('NH_Tokens').filter(r => r.token === token && r.side === me.side)
         .forEach(r => update_('NH_Tokens', r._row, { removed: 'TRUE', updatedAt: new Date().toISOString() }));

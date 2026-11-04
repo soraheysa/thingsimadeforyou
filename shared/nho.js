@@ -140,9 +140,12 @@
 
     document.querySelectorAll('[data-nho="panel"]').forEach(el => {
       el.querySelector('.nho-sub').textContent = subText();
-      el.querySelector('.nho-tiles').innerHTML = tileHTML('left') + tileHTML('right');
-      el.querySelector('.nho-total').textContent =
-        `Hôm nay ${phrase(me.side).toLowerCase()} ${me.sent.day + me.sent.night} lần, ${phrase(o.side).toLowerCase()} ${o.sent.day + o.sent.night} lận.`;
+      // Only the other person's taps: what they sent you, not a score between two.
+      el.querySelector('.nho-tiles').innerHTML = tileHTML(o.side);
+      const got = o.sent.day + o.sent.night;
+      const total = el.querySelector('.nho-total');
+      total.hidden = !got;
+      total.textContent = `Hôm nay ${phrase(o.side).toLowerCase()} ${got} lận.`;
       const push = el.querySelector('.nho-push');
       const html = pushHTML();
       push.hidden = !html;
@@ -262,7 +265,8 @@
   async function savePush(quiet) {
     const token = await deviceToken();
     if (!token) throw new Error('[Firebase token] không nhận được mã');
-    const r = await call('pushSave', { token, device: deviceName() });
+    // "pushToken", not "token": "token" is the sign-in token that call() already sends.
+    const r = await call('pushSave', { pushToken: token, device: deviceName() });
     if (!r.ok) throw new Error(`[lưu vào backend] ${r.error || ''} ${r.message || ''}`.trim());
     pushError = '';
     A.ls.set('push_token', token);
@@ -290,7 +294,7 @@
     const token = A.ls.get('push_token');
     A.ls.del('push_token');
     A.ls.del('push_saved_at');
-    const r = await call('pushRemove', { token });
+    const r = await call('pushRemove', { pushToken: token });
     if (r.ok) state = r.state;
     render();
     toast('Đã tắt thông báo trên máy này.');
