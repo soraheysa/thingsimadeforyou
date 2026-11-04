@@ -317,52 +317,18 @@ function day_(date, tz) { return Utilities.formatDate(date, tz, 'yyyy-MM-dd'); }
 
 /* ───────────────────────── Lines for the notification ───────────────────────── */
 
-const STARTER_LINES = [
-  // kind, to, when, text
-  ['nhắc', 'both', '', '{you} nhớ uống nước nhé 💧'],
-  ['nhắc', 'both', '', '{you} nhớ mặc ấm đấy 🧣'],
-  ['nhắc', 'both', '', 'Nhớ skincare nha ✨'],
-  ['nhắc', 'both', '', 'Nhớ ăn đủ đấy, không được bỏ bữa 🍚'],
-  ['nhắc', 'both', '', 'Đứng dậy vươn vai một cái đi {you} 🙆'],
-  ['nhắc', 'both', '', 'Thả lỏng vai ra, {you} đang gồng đó 😌'],
-  ['nhắc', 'both', '', 'Hôm nay {you} cười chưa? Cười một cái đi 😄'],
-  ['nhắc', 'both', '', '{you} nhớ sạc điện thoại nha 🔋'],
-  ['nhắc', 'both', '', 'Tự khen mình một câu hôm nay đi {you} 🌟'],
-  ['nhắc', 'both', 'sáng', 'Ăn sáng chưa đó? 🥐'],
-  ['nhắc', 'both', 'sáng', 'Ra đường nhớ bôi kem chống nắng nha ☀️'],
-  ['nhắc', 'both', 'trưa', 'Nhớ ăn trưa đàng hoàng nha 🍱'],
-  ['nhắc', 'both', 'chiều', 'Nghỉ mắt 20 giây, nhìn ra thật xa một chút 👀'],
-  ['nhắc', 'both', 'chiều', 'Ly cà phê thứ ba để mai uống nha ☕'],
-  ['nhắc', 'both', 'chiều', 'Ra ngoài hít thở chút không khí đi {you} 🌿'],
-  ['nhắc', 'both', 'tối', 'Tắt màn hình đi ngủ sớm nào {you} 🌙'],
-  ['nhắc', 'both', 'tối', 'Nhớ khoá cửa trước khi ngủ 🔑'],
-  ['nhắc', 'Thư', '', 'Bên đó lạnh, ra ngoài nhớ mang găng tay nha 🧤'],
-  ['quote', 'both', '', 'Fun fact: bạch tuộc có ba trái tim. {me} chỉ có một, đang ở chỗ {you} 🐙'],
-  ['quote', 'both', '', 'Fun fact: rái cá nắm tay nhau khi ngủ để không trôi xa 🦦'],
-  ['quote', 'both', '', 'Fun fact: chim cánh cụt tặng sỏi cho người mình thích 🐧'],
-  ['quote', 'both', '', 'Fun fact: mật ong để cả nghìn năm vẫn không hỏng 🍯'],
-  ['quote', 'both', '', 'Khoảng cách chỉ là con số. Múi giờ mới là kẻ thù thật sự 🕰️'],
-  ['quote', 'both', '', 'Ngủ đủ giấc là loại skincare miễn phí nhất 😴'],
-  ['quote', 'both', '', 'Hôm nay chưa ổn thì mai làm lại. Mặt trời cũng làm vậy mỗi ngày 🌅'],
-  ['quote', 'both', '', 'Pin 1% đáng sợ hơn mọi bộ phim kinh dị 🔋'],
-  ['quote', 'both', '', 'Một bước nhỏ mỗi ngày vẫn là đang tiến về phía trước 👣'],
-  ['quote', 'both', '', 'Có công mài sắt, có ngày nên kim ⚔️'],
-  ['quote', 'both', '', 'Đi một ngày đàng, học một sàng khôn 🧭'],
-  ['quote', 'both', '', 'Kiếm đạo dạy: thắng chính mình trước, rồi mới tới đối thủ 🥋'],
-];
-
 const WHEN_ = { 'sáng': [5, 11], 'trưa': [11, 14], 'chiều': [14, 18], 'tối': [18, 29] };   // 29 = 05:00 next day
 const SIDE_ALIAS_ = { both: 'both', '': 'both', left: 'left', right: 'right', 'luân': 'left', 'luan': 'left', 'thư': 'right', 'thu': 'right' };
 
-/** The NH_Lines tab, created with the starter lines the first time it is needed. */
+/** The NH_Lines tab. Created empty (headers only) if missing; the lines themselves are yours to add in the sheet. */
 function linesSheet_() {
   let sh = sheet_('NH_Lines');
-  if (sh && sh.getLastRow() > 1) return sh;   // already has lines (yours)
-  sh = sh || SS_.insertSheet('NH_Lines');
+  if (sh) return sh;
+  sh = SS_.insertSheet('NH_Lines');
   const head = NH.SHEETS.NH_Lines;
+  sh.getRange(1, 1, sh.getMaxRows(), head.length).setNumberFormat('@');
   sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold');
   sh.setFrozenRows(1);
-  sh.getRange(2, 1, STARTER_LINES.length, head.length).setNumberFormat('@').setValues(STARTER_LINES);
   sh.setColumnWidth(4, 520);
   return sh;
 }
