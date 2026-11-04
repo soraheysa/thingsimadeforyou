@@ -54,7 +54,15 @@ const NH = {
     NH_Misses: ['id', 'from', 'to', 'at', 'fromDay', 'toDay', 'night', 'toTz', 'pushed'],
     NH_Tokens: ['token', 'side', 'device', 'createdAt', 'updatedAt', 'removed'],
     NH_People: ['side', 'name', 'tz', 'tzChangedAt'],
+    // The notification's second line. Edit freely in the sheet; changes apply from the next heart.
+    //  kind: nhắc (a little reminder) or quote (fun fact, quote, proverb)
+    //  to:   both, Thư or Luân (who receives it; "right"/"left" work too)
+    //  when: sáng, trưa, chiều or tối in the receiver's own time; empty = any time
+    //  text: {you} = the receiver (em/anh), {me} = the sender; the first letter is capitalised for you
+    NH_Lines: ['kind', 'to', 'when', 'text'],
   },
+
+  QUOTE_SHARE: 0.25,   // about 1 heart in 4 carries a quote instead of a reminder
 };
 
 /* ───────────────────────── Setup ───────────────────────── */
@@ -150,8 +158,8 @@ const ACTIONS = {
     if (!night) {
       const n = rows_('NH_Misses').filter(r => r.to === to && r.toDay === toDay).length;
       pushed = push_(to, {
-        title: `${cap_(NH.PRONOUN[me.side])} nhớ ${NH.PRONOUN[to]} ${NH.EMOJI[me.side]}`,
-        body: n <= 1 ? 'Lần đầu tiên hôm nay' : `Lần thứ ${n} hôm nay`,
+        title: `${cap_(NH.PRONOUN[me.side])} nhớ ${NH.PRONOUN[to]} ${NH.EMOJI[me.side]}` + (n > 1 ? ` ×${n}` : ''),
+        body: pickLine_(me.side, to, toTz, now),
         tag: 'nho',
       }, Math.min(NH.TTL_MAX_S, secondsUntilSleep_(to, toTz, now)));
       if (pushed) withLock_(() => update_('NH_Misses', row._row, { pushed }));
@@ -307,6 +315,91 @@ function secondsUntilSleep_(side, tz, date) {
 
 function day_(date, tz) { return Utilities.formatDate(date, tz, 'yyyy-MM-dd'); }
 
+/* ───────────────────────── Lines for the notification ───────────────────────── */
+
+const STARTER_LINES = [
+  // kind, to, when, text
+  ['nhắc', 'both', '', '{you} nhớ uống nước nhé 💧'],
+  ['nhắc', 'both', '', '{you} nhớ mặc ấm đấy 🧣'],
+  ['nhắc', 'both', '', 'Nhớ skincare nha ✨'],
+  ['nhắc', 'both', '', 'Nhớ ăn đủ đấy, không được bỏ bữa 🍚'],
+  ['nhắc', 'both', '', 'Đứng dậy vươn vai một cái đi {you} 🙆'],
+  ['nhắc', 'both', '', 'Thả lỏng vai ra, {you} đang gồng đó 😌'],
+  ['nhắc', 'both', '', 'Hôm nay {you} cười chưa? Cười một cái đi 😄'],
+  ['nhắc', 'both', '', '{you} nhớ sạc điện thoại nha 🔋'],
+  ['nhắc', 'both', '', 'Tự khen mình một câu hôm nay đi {you} 🌟'],
+  ['nhắc', 'both', 'sáng', 'Ăn sáng chưa đó? 🥐'],
+  ['nhắc', 'both', 'sáng', 'Ra đường nhớ bôi kem chống nắng nha ☀️'],
+  ['nhắc', 'both', 'trưa', 'Nhớ ăn trưa đàng hoàng nha 🍱'],
+  ['nhắc', 'both', 'chiều', 'Nghỉ mắt 20 giây, nhìn ra thật xa một chút 👀'],
+  ['nhắc', 'both', 'chiều', 'Ly cà phê thứ ba để mai uống nha ☕'],
+  ['nhắc', 'both', 'chiều', 'Ra ngoài hít thở chút không khí đi {you} 🌿'],
+  ['nhắc', 'both', 'tối', 'Tắt màn hình đi ngủ sớm nào {you} 🌙'],
+  ['nhắc', 'both', 'tối', 'Nhớ khoá cửa trước khi ngủ 🔑'],
+  ['nhắc', 'Thư', '', 'Bên đó lạnh, ra ngoài nhớ mang găng tay nha 🧤'],
+  ['quote', 'both', '', 'Fun fact: bạch tuộc có ba trái tim. {me} chỉ có một, đang ở chỗ {you} 🐙'],
+  ['quote', 'both', '', 'Fun fact: rái cá nắm tay nhau khi ngủ để không trôi xa 🦦'],
+  ['quote', 'both', '', 'Fun fact: chim cánh cụt tặng sỏi cho người mình thích 🐧'],
+  ['quote', 'both', '', 'Fun fact: mật ong để cả nghìn năm vẫn không hỏng 🍯'],
+  ['quote', 'both', '', 'Khoảng cách chỉ là con số. Múi giờ mới là kẻ thù thật sự 🕰️'],
+  ['quote', 'both', '', 'Ngủ đủ giấc là loại skincare miễn phí nhất 😴'],
+  ['quote', 'both', '', 'Hôm nay chưa ổn thì mai làm lại. Mặt trời cũng làm vậy mỗi ngày 🌅'],
+  ['quote', 'both', '', 'Pin 1% đáng sợ hơn mọi bộ phim kinh dị 🔋'],
+  ['quote', 'both', '', 'Một bước nhỏ mỗi ngày vẫn là đang tiến về phía trước 👣'],
+  ['quote', 'both', '', 'Có công mài sắt, có ngày nên kim ⚔️'],
+  ['quote', 'both', '', 'Đi một ngày đàng, học một sàng khôn 🧭'],
+  ['quote', 'both', '', 'Kiếm đạo dạy: thắng chính mình trước, rồi mới tới đối thủ 🥋'],
+];
+
+const WHEN_ = { 'sáng': [5, 11], 'trưa': [11, 14], 'chiều': [14, 18], 'tối': [18, 29] };   // 29 = 05:00 next day
+const SIDE_ALIAS_ = { both: 'both', '': 'both', left: 'left', right: 'right', 'luân': 'left', 'luan': 'left', 'thư': 'right', 'thu': 'right' };
+
+/** The NH_Lines tab, created with the starter lines the first time it is needed. */
+function linesSheet_() {
+  let sh = sheet_('NH_Lines');
+  if (sh && sh.getLastRow() > 1) return sh;   // already has lines (yours)
+  sh = sh || SS_.insertSheet('NH_Lines');
+  const head = NH.SHEETS.NH_Lines;
+  sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  sh.getRange(2, 1, STARTER_LINES.length, head.length).setNumberFormat('@').setValues(STARTER_LINES);
+  sh.setColumnWidth(4, 520);
+  return sh;
+}
+
+/** A random line for the notification body: mostly reminders, sometimes a quote; never the same one twice in a row. */
+function pickLine_(from, to, toTz, date) {
+  try {
+    linesSheet_();
+    const hour = Number(Utilities.formatDate(date, toTz, 'HH'));
+    const fits = w => {
+      const range = WHEN_[String(w || '').trim().toLowerCase()];
+      if (!range) return true;
+      const h = hour < 5 ? hour + 24 : hour;
+      return h >= range[0] && h < range[1];
+    };
+    const all = rows_('NH_Lines').filter(r => r.text.trim()
+      && [to, 'both'].indexOf(SIDE_ALIAS_[String(r.to || '').trim().toLowerCase()] || 'both') >= 0
+      && fits(r.when));
+    const props = PropertiesService.getScriptProperties();
+    const last = props.getProperty('LAST_LINE_' + to) || '';
+    const isQuote = r => /^quote/i.test(String(r.kind || '').trim());
+    const pool = kind => all.filter(r => isQuote(r) === kind && r.text !== last);
+    let list = pool(Math.random() < NH.QUOTE_SHARE);
+    if (!list.length) list = pool(true).concat(pool(false));
+    if (!list.length) return 'Chạm để mở Our Story';
+    const text = list[Math.floor(Math.random() * list.length)].text.trim();
+    props.setProperty('LAST_LINE_' + to, text);
+    const out = text
+      .replace(/\{you\}/gi, NH.PRONOUN[to])
+      .replace(/\{me\}/gi, NH.PRONOUN[from]);
+    return cap_(out);
+  } catch (err) {
+    console.warn(err);
+    return 'Chạm để mở Our Story';
+  }
+}
+
 /* ───────────────────────── Firebase Cloud Messaging ───────────────────────── */
 
 function serviceAccount_() {
@@ -434,7 +527,7 @@ function rows_(name) {
     const o = { _row: i + 2 };
     head.forEach((h, j) => { o[h] = v[j] instanceof Date ? v[j].toISOString() : String(v[j]); });
     return o;
-  }).filter(o => o.id || o.token || o.side);
+  }).filter(o => o.id || o.token || o.side || o.text);
 }
 
 /** Writes as plain text, so Sheets never turns "2026-11-03" into a date. */
