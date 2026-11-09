@@ -1,0 +1,168 @@
+/* "Về nhà" (shared/venha.js): the countdown under the Nhớ card, and the full-screen letter. */
+
+.vn {
+  margin: 0 0 26px;
+  padding: 14px 14px 16px;
+  border-radius: 16px;
+  background: #FFF1E3;
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #2A1F2D;
+}
+.vn p { margin: 0; }
+.vn-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px !important;
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.vn-kicker::before {
+  content: '';
+  flex: none;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #E07306;
+  box-shadow: 0 0 0 4px rgba(224, 115, 6, .18);
+}
+.vn-count { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.vn-count div {
+  display: grid;
+  justify-items: center;
+  padding: 8px 2px 6px;
+  border-radius: 10px;
+  background: #FFFFFF;
+}
+.vn-count b {
+  font-size: clamp(1.35rem, 6.5vw, 1.7rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #B4560A;
+}
+.vn-count span { font-size: .78rem; color: #6E6475; }
+.vn-when { margin-top: 10px !important; font-size: .86rem; line-height: 1.4; color: #6E6475; }
+
+.vn-is-home { background: linear-gradient(120deg, #FFE1F1 0%, #FFE6CC 100%); }
+.vn-arrived { font-family: 'Patrick Hand', 'Be Vietnam Pro', cursive; font-size: 1.9rem; line-height: 1.15; }
+.vn-is-home .vn-when { margin-top: 4px !important; }
+
+.vn-preview {
+  margin-top: 10px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  color: #6A3FA0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.vn-preview:disabled { opacity: .55; cursor: progress; }
+
+/* ───────── Full-screen letter ───────── */
+
+html.vn-open { overflow: hidden; }
+
+.vn-letter-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482000;
+  overflow: auto;
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  color: #2A1F2D;
+  -webkit-font-smoothing: antialiased;
+  animation: vn-fade .35s ease both;
+}
+.vn-letter-root *, .vn-letter-root *::before, .vn-letter-root *::after { box-sizing: border-box; }
+.vn-letter-root.is-leaving { animation: vn-fade-out .22s ease both; }
+
+/* The two halves (pink Luân, orange Thư) melt into one: she's home. */
+.vn-letter-bg { position: fixed; inset: 0; background: linear-gradient(160deg, #FF9DD1 0%, #F7A27A 52%, #E07306 100%); }
+.vn-letter-wrap {
+  position: relative;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: max(28px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom));
+}
+.vn-letter {
+  position: relative;
+  width: min(100%, 30rem);
+  padding: 46px 30px 30px;
+  border-radius: 6px;
+  background: #FFFDF9;
+  box-shadow: 0 1px 0 rgba(42, 31, 45, .06), 0 28px 56px -28px rgba(42, 31, 45, .55);
+  animation: vn-rise .55s cubic-bezier(.2, .8, .2, 1) .1s both;
+}
+.vn-letter::before {
+  content: '';
+  position: absolute;
+  top: 16px; left: 50%;
+  width: 10px; height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: #C8102E;
+}
+.vn-letter p { margin: 0; }
+.vn-letter-note {
+  margin: 0 0 18px !important;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #FFF3C4;
+  color: #4A3B00;
+  font-size: .84rem;
+  line-height: 1.45;
+}
+.vn-letter-date { font-size: .86rem; font-weight: 600; color: #B4560A; }
+.vn-letter-title {
+  margin: 6px 0 16px;
+  font-size: clamp(1.8rem, 7vw, 2.3rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+.vn-letter-text {
+  font-family: 'Patrick Hand', 'Be Vietnam Pro', cursive;
+  font-size: 1.38rem;
+  line-height: 1.42;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.vn-letter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 28px;
+  padding: 13px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #C8102E;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.vn-letter-btn:active { transform: scale(.98); }
+.vn-letter-btn:focus-visible { outline: 3px solid #2A1F2D; outline-offset: 3px; }
+.vn-letter-stored { margin-top: 12px !important; font-size: .82rem; color: #6E6475; text-align: center; }
+
+@keyframes vn-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vn-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes vn-rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 440px) {
+  .vn-letter { padding: 42px 22px 26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vn-letter-root, .vn-letter { animation: none !important; }
+}

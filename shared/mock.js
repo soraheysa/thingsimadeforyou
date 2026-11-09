@@ -40,8 +40,8 @@
   }
 
   function load() {
-    try { const db = JSON.parse(localStorage.getItem(KEY)); if (db) { db.misses = db.misses || seedMisses(); return db; } } catch (e) { /* fresh */ }
-    const db = { entries: [], plans: [], tokens: {}, misses: seedMisses() };
+    try { const db = JSON.parse(localStorage.getItem(KEY)); if (db) { db.misses = db.misses || seedMisses(); db.letters = db.letters || seedLetters(); return db; } } catch (e) { /* fresh */ }
+    const db = { entries: [], plans: [], tokens: {}, misses: seedMisses(), letters: seedLetters() };
     db.entries.push({ dayKey: dayKey('Europe/Berlin'), email: 'thu@demo', mood: 'missing', note: 'Trời ở đây xám quá. Kể em nghe hôm nay anh ăn gì đi.', shareFortune: true });
     db.entries.push({ dayKey: dayKey('Asia/Ho_Chi_Minh'), email: 'luan@demo', mood: 'calm', note: 'Chạy bộ xong rồi. Trên đường về toàn nghĩ tới em.', shareFortune: false });
     const yKey = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
@@ -63,6 +63,18 @@
       { from: 'left', to: 'right', at: at(1), fromDay: vn, toDay: de, night: false },
     ];
   }
+  /* "Về nhà" letters (shared/venha.js). The real ones live in the Nhớ Google Sheet, tab NH_Letters. */
+  function seedLetters() {
+    const at = ((window.SHARED_CONFIG || {}).RETURN || {}).AT || '';
+    return [{ id: 've-nha', title: 'Chào mừng em về nhà',
+      text: '(Lá thư chào em về nhà. Anh sẽ viết nội dung thật vào Google Sheet.)\n\nĐây là chữ giả để xem thử: xuống dòng được giữ nguyên, thư dài thì màn hình tự cuộn.',
+      opensAt: at ? new Date(at).toISOString() : '', popup: true, seenAt: '' }];
+  }
+  const clock = () => (window.Auth && window.Auth.now ? window.Auth.now() : Date.now());
+  function letterOut(l) {
+    return Object.assign({}, l, { locked: !!l.opensAt && clock() < Date.parse(l.opensAt) });
+  }
+
   function save(db) { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ } }
   function userFor(email) { return /luan|luân/i.test(email || '') ? USERS[0] : USERS[1]; }
   function err(code, message) { return { ok: false, error: code, message: message || '' }; }
@@ -153,6 +165,17 @@
         return { ok: true, silenced: night, pushed: night ? 0 : 1, state: nhoState(db, me) };
       }
       case 'pushSave': case 'pushRemove': return { ok: true, state: nhoState(db, me) };
+      case 'letters': {
+        const all = db.letters.map(letterOut);
+        const list = me.side === 'left' ? all : all.filter(l => !l.locked);
+        const popup = me.side === 'right' ? (list.find(l => l.popup && !l.seenAt) || null) : null;
+        return { ok: true, letters: list, popup };
+      }
+      case 'letterSeen': {
+        const l = db.letters.find(x => x.id === req.id);
+        if (me.side === 'right' && l && !l.seenAt && !letterOut(l).locked) { l.seenAt = new Date(clock()).toISOString(); save(db); }
+        return { ok: true };
+      }
       case 'pushTest': return { ok: false, error: 'no_push', message: 'Chế độ xem thử không gửi thông báo thật.' };
     }
     return err('bad_request', 'Yêu cầu không hợp lệ.');

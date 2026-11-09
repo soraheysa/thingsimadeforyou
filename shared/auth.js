@@ -30,6 +30,14 @@
   if (new URLSearchParams(location.search).has('demo')) ss.set('demo', '1');
   const DEMO = !CFG.AUTH_API_URL || ss.get('demo') === '1';
 
+  // Preview mode only: ?now=2027-01-15T08:00:00+07:00 pretends it is that moment, on every page
+  // of this visit (?now= with nothing goes back to the real time). Real visits always use the real clock.
+  const nowParam = new URLSearchParams(location.search).get('now');
+  if (DEMO && nowParam !== null) { if (nowParam) ss.set('now', nowParam); else ss.del('now'); }
+  const fakeNow = DEMO ? Date.parse(ss.get('now') || '') : NaN;
+  const SHIFT = isNaN(fakeNow) ? 0 : fakeNow - Date.now();
+  const now = () => Date.now() + SHIFT;
+
   const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return ''; } })();
 
   function credentials() {
@@ -135,7 +143,7 @@
   /** Milliseconds until a thing opens; 0 when it is open (or has no date). */
   function opensIn(t) {
     if (!t || !t.opensAt) return 0;
-    const ms = Date.parse(t.opensAt) - Date.now();
+    const ms = Date.parse(t.opensAt) - now();
     return ms > 0 ? ms : 0;
   }
 
@@ -212,7 +220,7 @@
   }
 
   window.Auth = {
-    DEMO, ROOT, ls, ss,
+    DEMO, ROOT, ls, ss, now,
     credentials, post, call, require, expired, signOut,
     saveSession, hubUrl, safeNext, hasSession, confirmed,
     thing, opensIn, countdownText, openTimeText, waitForRelease, early,

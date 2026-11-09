@@ -10,6 +10,8 @@
  *  - sends a phone notification through Firebase Cloud Messaging, except while the other person sleeps,
  *  - follows each person's timezone from their phone, with a fallback switch to Vietnam time
  *    at Thư's landing time (Script property RIGHT_ARRIVES_AT).
+ *  - "Về nhà" (shared/venha.js): serves the letters in tab NH_Letters, remembers when Thư first saw each,
+ *    and sends the countdown reminders in tab NH_Reminders (function remindersTick, every 5 minutes).
  *
  * Setup (once)
  *  1. script.google.com → New project → name it "Our Story – Nhớ" → paste this file as Code.gs.
@@ -22,6 +24,10 @@
  *  4. Pick "checkPush" → Run. The log should say "FCM OK".
  *  5. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone → Deploy.
  *  6. Copy the URL (…/exec) into NHO.API_URL in shared/config.js.
+ *  7. "Về nhà" (countdown, letters, reminders), once:
+ *       - Script property RIGHT_ARRIVES_AT = 2027-01-15T07:00:00+07:00 (same as RETURN_AT in shared/config.js)
+ *       - Run "setup" again: it adds the tabs NH_Letters and NH_Reminders with placeholder text to edit.
+ *       - Run "setupReminders": it starts the 5-minute check and logs when each reminder will go out.
  * Later code changes: Deploy → Manage deployments → edit (pencil) → Version: New version (same URL).
  * Script properties take effect at once, no new deployment needed.
  */
@@ -60,7 +66,38 @@ const NH = {
     //  when: sáng, trưa, chiều or tối in the receiver's own time; empty = any time
     //  text: {you} = the receiver (em/anh), {me} = the sender; the first letter is capitalised for you
     NH_Lines: ['kind', 'to', 'when', 'text'],
+    // Letters for "Những bức Thư anh gửi đến em" (thu-gui-em/ and the welcome screen). Edit freely in the sheet.
+    //  id:      a short unique name, e.g. ve-nha
+    //  title, text: the letter; line breaks in the cell are kept
+    //  opensAt: when Thư can see it, e.g. 2027-01-15T07:00:00+07:00; "landing" = RIGHT_ARRIVES_AT; empty = now
+    //  popup:   TRUE = opens by itself the first time Thư uses the app after opensAt (only once)
+    //  seenAt:  filled in when Thư first sees it; clear it to show the popup to her again
+    NH_Letters: ['id', 'title', 'text', 'opensAt', 'popup', 'seenAt'],
+    // Countdown reminders, sent by remindersTick. One row per reminder and person; edit title and body freely.
+    //  id: 1-thang (one month before), 1-tuan (one week before): at REMINDERS.AT in that person's own time
+    //      24-gio: exactly 24 hours before landing, to both at once (this one ignores sleep times)
+    //  to: Luân or Thư.   sentAt: filled in when sent; clear it to send again.
+    NH_Reminders: ['id', 'to', 'title', 'body', 'sentAt'],
   },
+
+  REMINDERS: {
+    AT: '08:00',        // local time for 1-thang and 1-tuan
+    WINDOW_H: 3,        // if the phone or Google was down, keep trying this long after the due time
+    // Written into NH_Reminders by "setup" when that tab is empty. After that, the sheet is what counts.
+    DEFAULTS: [
+      { id: '1-thang', to: 'Luân', title: 'Còn 1 tháng nữa 🧡', body: 'Còn đúng một tháng nữa là Thư về rồi.' },
+      { id: '1-thang', to: 'Thư', title: 'Còn 1 tháng nữa 🧡', body: 'Còn đúng một tháng nữa là em về nhà rồi.' },
+      { id: '1-tuan', to: 'Luân', title: 'Còn 1 tuần nữa 🧡', body: 'Một tuần nữa thôi là Thư về.' },
+      { id: '1-tuan', to: 'Thư', title: 'Còn 1 tuần nữa 🧡', body: 'Một tuần nữa thôi là em về nhà.' },
+      { id: '24-gio', to: 'Luân', title: 'Còn 24 giờ nữa 🧡', body: 'Giờ này ngày mai Thư hạ cánh rồi.' },
+      { id: '24-gio', to: 'Thư', title: 'Còn 24 giờ nữa 🧡', body: 'Giờ này ngày mai em hạ cánh rồi. Đi đường bình an nhé.' },
+    ],
+  },
+  // Written into NH_Letters by "setup" when that tab is empty.
+  LETTER_DEFAULTS: [
+    { id: 've-nha', title: 'Chào mừng em về nhà', text: '(Lá thư chào em về nhà. Anh sẽ viết nội dung thật vào ô này.)',
+      opensAt: 'landing', popup: 'TRUE', seenAt: '' },
+  ],
 
   QUOTE_SHARE: 0.25,   // about 1 heart in 4 carries a quote instead of a reminder
 };
@@ -84,6 +121,10 @@ function setup() {
     sh.setFrozenRows(1);
   });
   ss.getSheets().forEach(sh => { if (!NH.SHEETS[sh.getName()] && ss.getSheets().length > 1) ss.deleteSheet(sh); });
+  SS_ = ss;
+  if (!rows_('NH_Letters').length) NH.LETTER_DEFAULTS.forEach(r => append_('NH_Letters', r));
+  if (!rows_('NH_Reminders').length) NH.REMINDERS.DEFAULTS.forEach(r => append_('NH_Reminders', r));
+  ss.getSheetByName('NH_Letters').setColumnWidth(3, 520);
   Logger.log('Xong. Bảng dữ liệu: ' + ss.getUrl());
 }
 
@@ -190,6 +231,25 @@ const ACTIONS = {
         .forEach(r => update_('NH_Tokens', r._row, { removed: 'TRUE', updatedAt: new Date().toISOString() }));
     });
     return { ok: true, state: state_(me) };
+  },
+
+  /** "Về nhà" letters: Thư gets the ones already open, Luân gets all of them. popup = the one to open by itself for Thư. */
+  letters(req, me) {
+    const all = rows_('NH_Letters').filter(r => r.id.trim() && (r.title.trim() || r.text.trim())).map(letterOut_);
+    const list = me.side === 'left' ? all : all.filter(l => !l.locked);
+    const popup = me.side === 'right' ? (list.find(l => l.popup && !l.seenAt) || null) : null;
+    return { ok: true, letters: list, popup };
+  },
+
+  /** Thư saw a letter (only her own views count; Luân's previews never do). */
+  letterSeen(req, me) {
+    if (me.side !== 'right') return { ok: true };
+    const id = String(req.id || '').trim();
+    withLock_(() => {
+      const r = rows_('NH_Letters').find(x => x.id.trim() === id);
+      if (r && !r.seenAt.trim() && !letterOut_(r).locked) update_('NH_Letters', r._row, { seenAt: new Date().toISOString() });
+    });
+    return { ok: true };
   },
 
   /** A test notification to the caller's own devices (ignores sleep time). */
@@ -364,6 +424,88 @@ function pickLine_(from, to, toTz, date) {
     console.warn(err);
     return 'Chạm để mở Our Story';
   }
+}
+
+/* ───────────────────────── Về nhà: letters and countdown reminders ───────────────────────── */
+
+/** Thư's landing time (Script property RIGHT_ARRIVES_AT), or null. */
+function arrivesAt_() {
+  const t = Date.parse(PropertiesService.getScriptProperties().getProperty('RIGHT_ARRIVES_AT') || '');
+  return isNaN(t) ? null : new Date(t);
+}
+
+function letterOut_(r) {
+  const raw = String(r.opensAt || '').trim();
+  const arrives = arrivesAt_();
+  const at = /^landing$/i.test(raw) ? (arrives ? arrives.getTime() : NaN) : raw ? Date.parse(raw) : 0;
+  return {
+    id: r.id.trim(),
+    title: r.title.trim(),
+    text: String(r.text || '').replace(/\r\n?/g, '\n').trim(),
+    opensAt: at ? (isNaN(at) ? '' : new Date(at).toISOString()) : '',
+    // A date that can't be read keeps the letter closed for Thư rather than showing it early.
+    locked: isNaN(at) || (at > 0 && Date.now() < at),
+    popup: /^(true|1|x|yes|có)$/i.test(String(r.popup || '').trim()),
+    seenAt: String(r.seenAt || '').trim(),
+  };
+}
+
+/** Run once from the editor: checks NH_Reminders every 5 minutes, and logs when each one will go out. */
+function setupReminders() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'remindersTick')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('remindersTick').timeBased().everyMinutes(5).create();
+  const arrives = arrivesAt_();
+  if (!arrives) { Logger.log('Thiếu Script property RIGHT_ARRIVES_AT, chưa có lịch nhắc.'); return; }
+  const people = people_();
+  rows_('NH_Reminders').forEach(r => {
+    const side = SIDE_ALIAS_[String(r.to || '').trim().toLowerCase()];
+    const due = reminderDue_(r.id.trim(), side, arrives, people);
+    Logger.log(`${r.id} → ${r.to}: ` + (due
+      ? `${Utilities.formatDate(due, 'Asia/Ho_Chi_Minh', 'dd/MM/yyyy HH:mm')} giờ Việt Nam (${Utilities.formatDate(due, tzOf_(side, people), 'HH:mm')} giờ ${tzOf_(side, people)})`
+      : 'không rõ id hoặc người nhận'));
+  });
+}
+
+/** When one reminder is due for one person, or null. */
+function reminderDue_(id, side, arrives, people) {
+  if (side !== 'left' && side !== 'right') return null;
+  if (id === '24-gio') return new Date(arrives.getTime() - 24 * 3600e3);
+  const [y, m, d] = Utilities.formatDate(arrives, NH.ARRIVAL_TZ, 'yyyy-MM-dd').split('-').map(Number);
+  const day = id === '1-thang' ? new Date(Date.UTC(y, m - 2, d))
+    : id === '1-tuan' ? new Date(Date.UTC(y, m - 1, d - 7)) : null;
+  if (!day) return null;
+  return localTime_(Utilities.formatDate(day, 'UTC', 'yyyy-MM-dd'), NH.REMINDERS.AT, tzOf_(side, people));
+}
+
+/** "2026-12-15", "08:00", "Europe/Berlin" → that moment. */
+function localTime_(ymd, hhmm, tz) {
+  const guess = new Date(`${ymd}T${hhmm}:00Z`);
+  const off = Utilities.formatDate(guess, tz, 'Z');   // e.g. +0100
+  return new Date(`${ymd}T${hhmm}:00${off.slice(0, 3)}:${off.slice(3)}`);
+}
+
+/** Time trigger (setupReminders): sends each reminder in NH_Reminders once, when it is due. */
+function remindersTick() {
+  const arrives = arrivesAt_();
+  if (!arrives || Date.now() > arrives.getTime()) return;
+  const now = new Date();
+  const windowMs = NH.REMINDERS.WINDOW_H * 3600e3;
+  const people = people_();
+  rows_('NH_Reminders').forEach(r => {
+    if (r.sentAt.trim()) return;
+    const side = SIDE_ALIAS_[String(r.to || '').trim().toLowerCase()];
+    const due = reminderDue_(r.id.trim(), side, arrives, people);
+    if (!due || now < due) return;
+    if (now - due > windowMs) {
+      withLock_(() => update_('NH_Reminders', r._row, { sentAt: 'bỏ lỡ: không gửi được trong ' + NH.REMINDERS.WINDOW_H + ' giờ' }));
+      return;
+    }
+    const ttl = Math.round((due.getTime() + windowMs - now.getTime()) / 1000);
+    const n = push_(side, { title: r.title.trim() || 'Our Story', body: r.body.trim(), tag: 've-nha-' + r.id.trim() }, ttl);
+    if (n) withLock_(() => update_('NH_Reminders', r._row, { sentAt: now.toISOString() }));
+  });
 }
 
 /* ───────────────────────── Firebase Cloud Messaging ───────────────────────── */

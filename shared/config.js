@@ -3,6 +3,9 @@
  */
 // Launch of the "nhớ" heart: 00:00 Saturday 7 Nov in Germany = 06:00 in Vietnam. Used twice below.
 const NHO_OPENS_AT = '2026-11-07T00:00:00+01:00';
+// Thư lands in Vietnam: 07:00 Friday 15 Jan 2027 in Vietnam = 01:00 in Germany.
+// Keep it the same as RIGHT_ARRIVES_AT in the Nhớ backend's Script properties (reminders and sleep times use that one).
+const RETURN_AT = '2027-01-15T07:00:00+07:00';
 
 window.SHARED_CONFIG = {
   SERIES_NAME: 'Những thứ anh làm cho em',
@@ -40,6 +43,8 @@ window.SHARED_CONFIG = {
   //            teaser.countdown replaces the status line; {time} becomes the countdown.
   //  hideWhenOpen → drop the item from the list once it opens (for countdowns that aren't pages).
   //  status  → 'building' (Đang build) or 'idea' (Mới là ý tưởng): listed but not clickable.
+  //  hiddenUntilOpen → not listed at all until opensAt (instead of a locked row with a countdown),
+  //                    except for EARLY_ACCESS_SIDES.
   THINGS: [
     { path: 'hai-nua/', title: 'Hai nửa', text: 'Nhật ký tâm trạng của hai đứa mình, mỗi ngày một quẻ.' },
     { path: 'qua-giang-sinh/', title: 'Đoán quà Giáng sinh', text: 'Mỗi ngày một lượt đoán món quà anh chuẩn bị cho em.',
@@ -55,7 +60,25 @@ window.SHARED_CONFIG = {
       text: 'Thả vào hũ những điều mình ước, rồi mỗi ngày bốc một điều ước của nhau.',
       opensAt: '2026-12-26T00:00:00+01:00',     // after Christmas, Thư's time: 00:00 26 Dec in Germany = 06:00 in Vietnam
       teaser: { title: 'Lại thêm một trò nữa cho anh và em chơi với nhau', countdown: 'Coming soon in {time}' } },
+    // The letters. Not listed for Thư until she lands (hiddenUntilOpen); EARLY_ACCESS_SIDES see it before, to check it.
+    { path: 'thu-gui-em/', title: 'Những bức Thư anh gửi đến em', text: 'Nơi cất những lá thư anh viết cho em.',
+      opensAt: RETURN_AT, hiddenUntilOpen: true },
   ],
+
+  // Countdown to Thư's landing (shared/venha.js), right below the Nhớ card on the home page.
+  // The letters (the welcome-home one included) live in the Nhớ Google Sheet, tab NH_Letters.
+  RETURN: {
+    AT: RETURN_AT,
+    ARRIVED_HOURS: 48,   // "Em về rồi" stays this long after landing, then the banner goes away
+    TEXT: {
+      kicker: { left: 'Thư về nhà', right: 'Em về nhà' },   // above the countdown, by side
+      arrived: 'Em về rồi 🧡',
+      arrivedSub: { left: 'Thư đã về tới Việt Nam.', right: 'Chào mừng em về nhà.' },
+      preview: 'Xem thử màn hình chào',                      // Luân only
+      close: 'Cất thư',                                     // button under a letter
+      stored: 'Lá thư này được cất trong “Những bức Thư anh gửi đến em”.',
+    },
+  },
 
   // The "Anh nhớ em / Em nhớ anh" heart (shared/nho.js), on the home page and in Hai nửa.
   // Sleep times and Thư's landing time live in the backend: nho/backend/Code.gs and its Script properties.
