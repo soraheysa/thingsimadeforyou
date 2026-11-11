@@ -65,14 +65,44 @@
   }
   /* "Về nhà" letters (shared/venha.js). The real ones live in the Nhớ Google Sheet, tab NH_Letters. */
   function seedLetters() {
-    const at = ((window.SHARED_CONFIG || {}).RETURN || {}).AT || '';
     return [{ id: 've-nha', title: 'Chào mừng em về nhà',
       text: '(Lá thư chào em về nhà. Anh sẽ viết nội dung thật vào Google Sheet.)\n\nĐây là chữ giả để xem thử: xuống dòng được giữ nguyên, thư dài thì màn hình tự cuộn.',
-      opensAt: at ? new Date(at).toISOString() : '', popup: true, seenAt: '' }];
+      opensAt: 'landing', popup: true, seenAt: '' }];
   }
   const clock = () => (window.Auth && window.Auth.now ? window.Auth.now() : Date.now());
   function letterOut(l) {
-    return Object.assign({}, l, { locked: !!l.opensAt && clock() < Date.parse(l.opensAt) });
+    const at = l.opensAt === 'landing' ? Date.parse(flightState().arrivesAt) : Date.parse(l.opensAt || '');
+    return Object.assign({}, l, { opensAt: at ? new Date(at).toISOString() : '', locked: !!at && clock() < at });
+  }
+
+  /*
+   * "Về nhà" flight (action veNha), pretend version: the likely Qatar trip, a little late.
+   * QR70 Frankfurt 09:15 → Doha 17:15 on 14 Jan, QR974 Doha 20:00 → Tân Sơn Nhất 07:15 on 15 Jan.
+   * Without a ticket (preview switch), only the plan in shared/config.js (RETURN.AT) is known.
+   */
+  function flightState() {
+    const plan = Date.parse(((window.SHARED_CONFIG || {}).RETURN || {}).AT || '');
+    let ticket = '1';
+    try { ticket = sessionStorage.getItem('tim_pv_ticket') || '0'; } catch (e) { /* private mode */ }
+    if (ticket !== '1') return { arrivesAt: plan ? new Date(plan).toISOString() : '', scheduledAt: plan ? new Date(plan).toISOString() : '', landedAt: '', legs: [], checkedAt: '' };
+    const t = clock();
+    const iso = x => (x ? new Date(x).toISOString() : '');
+    const leg = (n, flight, from, fromTz, to, toTz, dS, aS, lateDep, lateArr) => {
+      const ds = Date.parse(dS), as = Date.parse(aS);
+      const known = t > ds - 3 * 3600e3;            // delays show up on the day
+      const dA = ds + lateDep * 60e3, aA = as + lateArr * 60e3;
+      const status = t >= aA ? 'Arrived' : t >= aA - 20 * 60e3 ? 'Approaching' : t >= dA ? 'EnRoute' : t > ds - 7 * 864e5 ? 'Expected' : '';
+      return { leg: n, flight, from, to, fromName: '', toName: '', fromTz, toTz, status,
+        dep: { s: iso(ds), e: iso(known ? dA : ds), a: t >= dA ? iso(dA) : '' },
+        arr: { s: iso(as), e: iso(known ? aA : as), a: t >= aA ? iso(aA) : '' } };
+    };
+    const legs = [
+      leg(1, 'QR70', 'FRA', 'Europe/Berlin', 'DOH', 'Asia/Qatar', '2027-01-14T08:15:00Z', '2027-01-14T14:15:00Z', 12, 5),
+      leg(2, 'QR974', 'DOH', 'Asia/Qatar', 'SGN', 'Asia/Ho_Chi_Minh', '2027-01-14T17:00:00Z', '2027-01-15T00:15:00Z', 25, 25),
+    ];
+    const last = legs[1];
+    return { arrivesAt: last.arr.a || last.arr.e, scheduledAt: last.arr.s, landedAt: last.arr.a, legs,
+      checkedAt: iso(t - 4 * 60e3) };
   }
 
   function save(db) { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ } }
@@ -165,6 +195,7 @@
         return { ok: true, silenced: night, pushed: night ? 0 : 1, state: nhoState(db, me) };
       }
       case 'pushSave': case 'pushRemove': return { ok: true, state: nhoState(db, me) };
+      case 'veNha': return Object.assign({ ok: true }, flightState());
       case 'letters': {
         const all = db.letters.map(letterOut);
         const list = me.side === 'left' ? all : all.filter(l => !l.locked);

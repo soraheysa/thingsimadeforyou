@@ -10,8 +10,11 @@
  *  - sends a phone notification through Firebase Cloud Messaging, except while the other person sleeps,
  *  - follows each person's timezone from their phone, with a fallback switch to Vietnam time
  *    at Thư's landing time (Script property RIGHT_ARRIVES_AT).
- *  - "Về nhà" (shared/venha.js): serves the letters in tab NH_Letters, remembers when Thư first saw each,
- *    and sends the countdown reminders in tab NH_Reminders (function remindersTick, every 5 minutes).
+ *  - "Về nhà" (shared/venha.js): Thư's landing time and flight for the countdown, the letters in tab NH_Letters
+ *    (remembers when Thư first saw each), the reminders in tab NH_Reminders, and flight tracking in tab NH_Flight:
+ *    it reads the ticket Thư sends on the Quà Giáng sinh page, asks AeroDataBox for the flight status
+ *    (weekly → daily in the last week → hourly on departure day → every 15 min in the last 6 h) and pushes
+ *    the changes to Luân. All of it runs from veNhaTick, every 5 minutes.
  *
  * Setup (once)
  *  1. script.google.com → New project → name it "Our Story – Nhớ" → paste this file as Code.gs.
@@ -24,10 +27,14 @@
  *  4. Pick "checkPush" → Run. The log should say "FCM OK".
  *  5. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone → Deploy.
  *  6. Copy the URL (…/exec) into NHO.API_URL in shared/config.js.
- *  7. "Về nhà" (countdown, letters, reminders), once:
- *       - Script property RIGHT_ARRIVES_AT = 2027-01-15T07:00:00+07:00 (same as RETURN_AT in shared/config.js)
- *       - Run "setup" again: it adds the tabs NH_Letters and NH_Reminders with placeholder text to edit.
- *       - Run "setupReminders": it starts the 5-minute check and logs when each reminder will go out.
+ *  7. "Về nhà" (countdown, letters, reminders, flight), once:
+ *       - Script property RIGHT_ARRIVES_AT = 2027-01-15T07:00:00+07:00 (same as RETURN_AT in shared/config.js);
+ *         the plan until Thư sends her ticket
+ *       - Script property AERODATABOX_KEY = your RapidAPI key (rapidapi.com → AeroDataBox → Subscribe, free plan)
+ *       - Run "setup" again: it adds the tabs NH_Letters, NH_Reminders and NH_Flight with placeholder text.
+ *       - Run "setupVeNha": it starts the 5-minute check and logs the plan. "showPlan" logs it again any time.
+ *       - When you see her ticket: put the first flight (from Germany) in NH_Flight, leg 1: flight and date.
+ *         The last flight (into Vietnam) fills itself from the ticket.
  * Later code changes: Deploy → Manage deployments → edit (pencil) → Version: New version (same URL).
  * Script properties take effect at once, no new deployment needed.
  */
@@ -50,7 +57,7 @@ const NH = {
 
   // Before a phone has reported its timezone.
   DEFAULT_TZ: { left: 'Asia/Ho_Chi_Minh', right: 'Europe/Berlin' },
-  // Where RIGHT_ARRIVES_AT switches Thư to.
+  // Where Thư's landing switches her to.
   ARRIVAL_TZ: 'Asia/Ho_Chi_Minh',
 
   MIN_GAP_MS: 3000,          // one tap every 3 s per person, so a double tap doesn't send twice
@@ -69,15 +76,49 @@ const NH = {
     // Letters for "Những bức Thư anh gửi đến em" (thu-gui-em/ and the welcome screen). Edit freely in the sheet.
     //  id:      a short unique name, e.g. ve-nha
     //  title, text: the letter; line breaks in the cell are kept
-    //  opensAt: when Thư can see it, e.g. 2027-01-15T07:00:00+07:00; "landing" = RIGHT_ARRIVES_AT; empty = now
+    //  opensAt: when Thư can see it, e.g. 2027-01-15T07:00:00+07:00; "landing" = when she lands (follows the flight); empty = now
     //  popup:   TRUE = opens by itself the first time Thư uses the app after opensAt (only once)
     //  seenAt:  filled in when Thư first sees it; clear it to show the popup to her again
     NH_Letters: ['id', 'title', 'text', 'opensAt', 'popup', 'seenAt'],
-    // Countdown reminders, sent by remindersTick. One row per reminder and person; edit title and body freely.
+    // Countdown reminders, sent by veNhaTick. One row per reminder and person; edit title and body freely.
     //  id: 1-thang (one month before), 1-tuan (one week before): at REMINDERS.AT in that person's own time
-    //      24-gio: exactly 24 hours before landing, to both at once (this one ignores sleep times)
-    //  to: Luân or Thư.   sentAt: filled in when sent; clear it to send again.
-    NH_Reminders: ['id', 'to', 'title', 'body', 'sentAt'],
+    //      24-gio: exactly 24 hours before the scheduled landing, to both at once
+    //      di-san-bay: Thư, TRAVEL.NOTICE_MIN before she should leave home for the train to the airport
+    //      any other id: needs "at"
+    //  to: Luân or Thư.
+    //  at: optional exact time, e.g. 2027-01-13T18:30:00+01:00. On di-san-bay it is when she leaves home
+    //      (put her real train time here once she books it); empty = worked out from the flight (see TRAVEL).
+    //  title, body: {leave} = leave-home time, {dep} = first flight's departure, {flight} = first flight (German time)
+    //  sentAt: filled in when sent; clear it to send again. Reminders ignore sleep times.
+    NH_Reminders: ['id', 'to', 'title', 'body', 'at', 'sentAt'],
+    // Thư's flights home, one row per leg. Leg 2 (into Vietnam) fills itself from her ticket; leg 1 is yours to fill.
+    //  leg: 1, 2…   flight: e.g. QR70   date: departure date at that airport, e.g. 2027-01-14
+    //  source: "vé" = from her ticket (kept in step with it); anything else = yours, never overwritten
+    //  the rest is written by the flight check; times are UTC. note: what the check last said.
+    NH_Flight: ['leg', 'flight', 'date', 'from', 'to', 'source', 'status',
+      'depScheduled', 'depEstimated', 'depActual', 'arrScheduled', 'arrEstimated', 'arrActual',
+      'fromTz', 'toTz', 'checkedAt', 'note'],
+  },
+
+  FLIGHT: {
+    // The Quà Giáng sinh backend (same URL as API_URL in qua-giang-sinh/index.html); Script property XMAS_API_URL overrides it.
+    XMAS_API_URL: 'https://script.google.com/macros/s/AKfycbxiNKLgQZETm-182B8dccnqoIPfR1bTABICoKA0MJ0pipJptqil4aTeEKU3Tqp1ek46/exec',
+    TICKET_SYNC_MIN: 30,        // how often to look for a new or changed ticket
+    MAX_CALLS_PER_MONTH: 250,   // safety cap on AeroDataBox calls (free plan: 600 units a month)
+    DELAY_NOTIFY_MIN: 15,       // tell Luân when the landing estimate moves by this much
+    GUESS_TRIP_H: 16,           // before leg 1 is known: assume she leaves Frankfurt this long before landing (QR70 + QR974)
+    AIRPORTS: { FRA: 'Frankfurt', HAM: 'Hamburg', DOH: 'Doha', SGN: 'Tân Sơn Nhất', HAN: 'Nội Bài', DAD: 'Đà Nẵng' },
+    AIRPORT_TZ: { FRA: 'Europe/Berlin', HAM: 'Europe/Berlin', DOH: 'Asia/Qatar', SGN: 'Asia/Ho_Chi_Minh', HAN: 'Asia/Ho_Chi_Minh', DAD: 'Asia/Ho_Chi_Minh' },
+  },
+
+  // Thư's trip to the airport, for the di-san-bay reminder.
+  TRAVEL: {
+    TZ: 'Europe/Berlin',
+    AIRPORT_BEFORE_MIN: 180,    // at the airport 3 h before an international flight
+    HOME_TO_AIRPORT_MIN: 300,   // Pinneberg → Hamburg Hbf → ICE → Frankfurt Flughafen, with a margin (~4 h 45 by train)
+    EARLIEST_LEAVE: '04:30',    // no useful trains before this…
+    LATEST_LEAVE: '22:00',      // …or after this: a leave time in between moves to 22:00 the evening before
+    NOTICE_MIN: 45,             // the reminder comes this long before she should leave
   },
 
   REMINDERS: {
@@ -91,6 +132,8 @@ const NH = {
       { id: '1-tuan', to: 'Thư', title: 'Còn 1 tuần nữa 🧡', body: 'Một tuần nữa thôi là em về nhà.' },
       { id: '24-gio', to: 'Luân', title: 'Còn 24 giờ nữa 🧡', body: 'Giờ này ngày mai Thư hạ cánh rồi.' },
       { id: '24-gio', to: 'Thư', title: 'Còn 24 giờ nữa 🧡', body: 'Giờ này ngày mai em hạ cánh rồi. Đi đường bình an nhé.' },
+      { id: 'di-san-bay', to: 'Thư', title: 'Sắp tới giờ ra ga rồi em ơi 🚆',
+        body: 'Em rời nhà lúc {leave} nhé, cho kịp chuyến {flight} lúc {dep}. Nhớ hộ chiếu, vé và sạc điện thoại.' },
     ],
   },
   // Written into NH_Letters by "setup" when that tab is empty.
@@ -124,6 +167,10 @@ function setup() {
   SS_ = ss;
   if (!rows_('NH_Letters').length) NH.LETTER_DEFAULTS.forEach(r => append_('NH_Letters', r));
   if (!rows_('NH_Reminders').length) NH.REMINDERS.DEFAULTS.forEach(r => append_('NH_Reminders', r));
+  if (!rows_('NH_Flight').length) {
+    append_('NH_Flight', { leg: 1, note: 'Chuyến từ Đức. Điền flight + date khi thấy vé. Dự đoán: QR70, 09:15 Frankfurt → 17:15 Doha, 2027-01-14.' });
+    append_('NH_Flight', { leg: 2, note: 'Chuyến về Việt Nam: tự điền từ vé Thư gửi ở trang Quà Giáng sinh.' });
+  }
   ss.getSheetByName('NH_Letters').setColumnWidth(3, 520);
   Logger.log('Xong. Bảng dữ liệu: ' + ss.getUrl());
 }
@@ -241,6 +288,11 @@ const ACTIONS = {
     return { ok: true, letters: list, popup };
   },
 
+  /** The countdown banner: landing time (follows the flight) and the flight's legs and status. */
+  veNha(req, me) {
+    return Object.assign({ ok: true }, veNhaOut_());
+  },
+
   /** Thư saw a letter (only her own views count; Luân's previews never do). */
   letterSeen(req, me) {
     if (me.side !== 'right') return { ok: true };
@@ -334,14 +386,15 @@ function people_() {
 
 /**
  * The timezone to use for one person.
- * Thư: from RIGHT_ARRIVES_AT on, Vietnam time, unless her phone reported a new timezone after landing
+ * Thư: from her landing (arrivesAt_) on, Vietnam time, unless her phone reported a new timezone after landing
  * (then the phone wins, so a delayed flight or a later trip still comes out right).
  */
 function tzOf_(side, people) {
   const p = people[side] || {};
   let tz = normTz_(p.tz) || NH.DEFAULT_TZ[side];
   if (side === 'right') {
-    const arrives = Date.parse(PropertiesService.getScriptProperties().getProperty('RIGHT_ARRIVES_AT') || '');
+    const a = arrivesAt_();
+    const arrives = a ? a.getTime() : NaN;
     const changed = Date.parse(p.tzChangedAt || '');
     if (!isNaN(arrives) && Date.now() >= arrives && !(changed >= arrives)) tz = NH.ARRIVAL_TZ;
   }
@@ -426,12 +479,42 @@ function pickLine_(from, to, toTz, date) {
   }
 }
 
-/* ───────────────────────── Về nhà: letters and countdown reminders ───────────────────────── */
+/* ───────────────────────── Về nhà: landing time, flight, letters, reminders ───────────────────────── */
+/*
+ * Where Thư's landing time comes from, best first:
+ *   1. the flight being tracked (tab NH_Flight, last leg): actual landing, else the airline's estimate
+ *   2. the scheduled landing in NH_Flight, filled from the ticket she sends on the Quà Giáng sinh page
+ *   3. Script property RIGHT_ARRIVES_AT (the plan before any ticket)
+ */
 
-/** Thư's landing time (Script property RIGHT_ARRIVES_AT), or null. */
+let FLIGHT_MEMO_ = null;
+/** The NH_Flight rows that have a flight number, by leg order. */
+function flightLegs_() {
+  if (FLIGHT_MEMO_) return FLIGHT_MEMO_;
+  const sh = sheet_('NH_Flight');
+  FLIGHT_MEMO_ = !sh ? [] : rows_('NH_Flight')
+    .filter(r => r.flight.trim())
+    .sort((a, b) => Number(a.leg) - Number(b.leg));
+  return FLIGHT_MEMO_;
+}
+const t_ = s => { const t = Date.parse(String(s || '').trim()); return isNaN(t) ? 0 : t; };
+
+/** Scheduled landing (no delays): last leg's schedule, else RIGHT_ARRIVES_AT. Reminders count from this. */
+function scheduledArrival_() {
+  const legs = flightLegs_();
+  const last = legs[legs.length - 1];
+  const t = last && t_(last.arrScheduled);
+  if (t) return new Date(t);
+  const p = t_(PropertiesService.getScriptProperties().getProperty('RIGHT_ARRIVES_AT'));
+  return p ? new Date(p) : null;
+}
+
+/** Best-known landing: actual, else estimated, else scheduled. The countdown, letters and timezone switch use this. */
 function arrivesAt_() {
-  const t = Date.parse(PropertiesService.getScriptProperties().getProperty('RIGHT_ARRIVES_AT') || '');
-  return isNaN(t) ? null : new Date(t);
+  const legs = flightLegs_();
+  const last = legs[legs.length - 1];
+  const t = last && (t_(last.arrActual) || t_(last.arrEstimated));
+  return t ? new Date(t) : scheduledArrival_();
 }
 
 function letterOut_(r) {
@@ -450,33 +533,258 @@ function letterOut_(r) {
   };
 }
 
-/** Run once from the editor: checks NH_Reminders every 5 minutes, and logs when each one will go out. */
-function setupReminders() {
-  ScriptApp.getProjectTriggers()
-    .filter(t => t.getHandlerFunction() === 'remindersTick')
-    .forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('remindersTick').timeBased().everyMinutes(5).create();
-  const arrives = arrivesAt_();
-  if (!arrives) { Logger.log('Thiếu Script property RIGHT_ARRIVES_AT, chưa có lịch nhắc.'); return; }
-  const people = people_();
-  rows_('NH_Reminders').forEach(r => {
-    const side = SIDE_ALIAS_[String(r.to || '').trim().toLowerCase()];
-    const due = reminderDue_(r.id.trim(), side, arrives, people);
-    Logger.log(`${r.id} → ${r.to}: ` + (due
-      ? `${Utilities.formatDate(due, 'Asia/Ho_Chi_Minh', 'dd/MM/yyyy HH:mm')} giờ Việt Nam (${Utilities.formatDate(due, tzOf_(side, people), 'HH:mm')} giờ ${tzOf_(side, people)})`
-      : 'không rõ id hoặc người nhận'));
+/** For the banner (action veNha): landing time and the flight, for both people. */
+function veNhaOut_() {
+  const iso = t => (t ? new Date(t).toISOString() : '');
+  const arrives = arrivesAt_(), sched = scheduledArrival_();
+  const legs = flightLegs_().map(r => ({
+    leg: Number(r.leg), flight: r.flight.trim(),
+    from: r.from.trim(), to: r.to.trim(),
+    fromName: airportName_(r.from), toName: airportName_(r.to),
+    fromTz: r.fromTz.trim() || airportTz_(r.from), toTz: r.toTz.trim() || airportTz_(r.to),
+    status: r.status.trim(),
+    dep: { s: iso(t_(r.depScheduled)), e: iso(t_(r.depEstimated)), a: iso(t_(r.depActual)) },
+    arr: { s: iso(t_(r.arrScheduled)), e: iso(t_(r.arrEstimated)), a: iso(t_(r.arrActual)) },
+  }));
+  const last = legs[legs.length - 1];
+  return {
+    arrivesAt: arrives ? arrives.toISOString() : '',
+    scheduledAt: sched ? sched.toISOString() : '',
+    landedAt: last && last.arr.a ? last.arr.a : '',
+    legs,
+    checkedAt: PropertiesService.getScriptProperties().getProperty('FLIGHT_CHECKED_AT') || '',
+  };
+}
+
+const airportName_ = code => NH.FLIGHT.AIRPORTS[String(code || '').trim().toUpperCase()] || String(code || '').trim();
+const airportTz_ = code => NH.FLIGHT.AIRPORT_TZ[String(code || '').trim().toUpperCase()] || 'Asia/Ho_Chi_Minh';
+
+/* ───── Ticket from the Quà Giáng sinh page ───── */
+
+/** Copies the ticket Thư sent (flight number, airport, landing time) into the last leg of NH_Flight. */
+function syncTicket_() {
+  const url = PropertiesService.getScriptProperties().getProperty('XMAS_API_URL') || NH.FLIGHT.XMAS_API_URL;
+  if (!url) return;
+  let s;
+  try {
+    const res = UrlFetchApp.fetch(url + '?action=state&t=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
+    s = JSON.parse(res.getContentText());
+  } catch (e) { console.warn('Quà Giáng sinh: ' + e); return; }
+  const t = s && s.ticket;
+  if (!t || !t.flightNo || !t_(t.landingISO)) return;
+  const flight = normFlight_(t.flightNo);
+  const landing = new Date(t_(t.landingISO)).toISOString();
+  const to = String(t.airport || '').trim().toUpperCase();
+  withLock_(() => {
+    const rows = rows_('NH_Flight');
+    const legs = rows.map(r => Number(r.leg)).filter(n => n > 0);
+    // The ticket goes into the highest leg (2 by default). Luân's own entry there wins if he changed "source".
+    const leg = legs.length ? Math.max.apply(null, legs) : 2;
+    const row = rows.find(r => Number(r.leg) === leg);
+    const patch = { flight, date: Utilities.formatDate(new Date(landing), airportTz_(to || 'SGN'), 'yyyy-MM-dd'),
+      to: to || (row && row.to) || '', arrScheduled: landing, source: 'vé' };
+    if (!row) { append_('NH_Flight', Object.assign({ leg }, patch)); FLIGHT_MEMO_ = null; return; }
+    if (row.source.trim() && row.source.trim() !== 'vé') return;
+    if (row.flight.trim() === flight && t_(row.arrScheduled) === t_(landing)) return;
+    // A new or changed ticket: start that leg's tracking from scratch.
+    update_('NH_Flight', row._row, Object.assign(patch, { status: '', depScheduled: '', depEstimated: '', depActual: '',
+      arrEstimated: '', arrActual: '', checkedAt: '' }));
+    FLIGHT_MEMO_ = null;
+    PropertiesService.getScriptProperties().deleteProperty('FLIGHT_CHECKED_AT');   // check the new flight on the next tick
+    PropertiesService.getScriptProperties().deleteProperty('FLIGHT_TOLD_ETA');
   });
 }
 
-/** When one reminder is due for one person, or null. */
-function reminderDue_(id, side, arrives, people) {
+const normFlight_ = s => String(s || '').toUpperCase().replace(/[\s-]/g, '');
+
+/* ───── Flight status (AeroDataBox through RapidAPI) ───── */
+
+/**
+ * How often to ask for the flight status (Luân's rules):
+ *   weekly → daily in the last 7 days → hourly from departure day (Germany) → every 15 min in the last 6 h → stop after landing.
+ */
+function nextCheckGap_(now) {
+  const legs = flightLegs_();
+  if (!legs.length) return null;
+  const last = legs[legs.length - 1];
+  if (t_(last.arrActual) || /^(arrived|canceled)$/i.test(last.status.trim())) return null;
+  const arrives = arrivesAt_();
+  const first = legs[0];
+  const dep = t_(first.depScheduled) || (arrives ? arrives.getTime() - NH.FLIGHT.GUESS_TRIP_H * 3600e3 : 0);
+  const depDay = dep ? Utilities.formatDate(new Date(dep), NH.TRAVEL.TZ, 'yyyy-MM-dd') : '';
+  const today = Utilities.formatDate(now, NH.TRAVEL.TZ, 'yyyy-MM-dd');
+  if (arrives && now.getTime() >= arrives.getTime() - 6 * 3600e3) return 15 * 60e3;
+  if (depDay && today >= depDay) return 60 * 60e3;
+  if (dep && now.getTime() >= dep - 7 * 864e5) return 24 * 3600e3;
+  return 7 * 864e5;
+}
+
+/** One call to AeroDataBox for one flight on one local date. Returns the list it sent, [] when none, null on error. */
+function fetchFlight_(flight, date) {
+  const key = PropertiesService.getScriptProperties().getProperty('AERODATABOX_KEY');
+  if (!key) return null;
+  const props = PropertiesService.getScriptProperties();
+  const month = 'FLIGHT_CALLS_' + Utilities.formatDate(new Date(), 'UTC', 'yyyy-MM');
+  const used = Number(props.getProperty(month) || 0);
+  if (used >= NH.FLIGHT.MAX_CALLS_PER_MONTH) { console.warn('Đã dùng hết lượt gọi AeroDataBox tháng này.'); return null; }
+  props.setProperty(month, String(used + 1));
+  const res = UrlFetchApp.fetch(`https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight)}/${date}` +
+    '?withAircraftImage=false&withLocation=false', {
+    headers: { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com' },
+    muteHttpExceptions: true,
+  });
+  const code = res.getResponseCode();
+  if (code === 204 || code === 404) return [];
+  if (code !== 200) { console.warn('AeroDataBox ' + code + ': ' + res.getContentText().slice(0, 300)); return null; }
+  try { const j = JSON.parse(res.getContentText()); return Array.isArray(j) ? j : []; } catch (e) { return null; }
+}
+
+/** AeroDataBox writes "2027-01-14 08:15Z"; Date.parse wants a T. */
+const adbTime_ = o => (o && o.utc ? t_(String(o.utc).replace(' ', 'T')) : 0);
+
+/** Pick the right flight from AeroDataBox's answer: the one closest to what we expect, on the right route. */
+function pickFlight_(list, row) {
+  if (!list.length) return null;
+  const want = t_(row.arrScheduled) || t_(row.depScheduled);
+  const to = row.to.trim().toUpperCase(), from = row.from.trim().toUpperCase();
+  const fits = list.filter(f => (!to || ((f.arrival || {}).airport || {}).iata === to) && (!from || ((f.departure || {}).airport || {}).iata === from));
+  const pool = fits.length ? fits : list;
+  if (!want) return pool[0];
+  const key = f => Math.abs((adbTime_((f.arrival || {}).scheduledTime) || adbTime_((f.departure || {}).scheduledTime)) - want);
+  return pool.slice().sort((a, b) => key(a) - key(b))[0];
+}
+
+/** Ask for every leg that hasn't landed yet, write what changed to NH_Flight, and tell Luân. */
+function checkFlights_() {
+  const now = new Date();
+  const before = JSON.parse(JSON.stringify(veNhaOut_()));
+  let asked = 0;
+  flightLegs_().forEach(row => {
+    if (t_(row.arrActual)) return;   // this leg is done
+    const date = row.date.trim() || (t_(row.depScheduled) ? Utilities.formatDate(new Date(t_(row.depScheduled)), airportTz_(row.from), 'yyyy-MM-dd') : '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    const list = fetchFlight_(normFlight_(row.flight), date);
+    asked++;
+    if (!list) return;
+    const f = pickFlight_(list, row);
+    if (!f) { withLock_(() => update_('NH_Flight', row._row, { checkedAt: now.toISOString(), note: 'Chưa có dữ liệu cho ngày ' + date })); return; }
+    const d = f.departure || {}, a = f.arrival || {};
+    const iso = t => (t ? new Date(t).toISOString() : '');
+    const status = String(f.status || '').trim();
+    const departed = /^(departed|enroute|approaching|arrived|diverted)$/i.test(status);
+    const patch = {
+      status,
+      from: (d.airport && d.airport.iata) || row.from, to: (a.airport && a.airport.iata) || row.to,
+      fromTz: (d.airport && d.airport.timeZone) || row.fromTz, toTz: (a.airport && a.airport.timeZone) || row.toTz,
+      depScheduled: iso(adbTime_(d.scheduledTime)) || row.depScheduled,
+      depEstimated: iso(adbTime_(d.revisedTime) || adbTime_(d.scheduledTime)),
+      depActual: iso(adbTime_(d.runwayTime) || (departed ? adbTime_(d.revisedTime) : 0)),
+      arrScheduled: iso(adbTime_(a.scheduledTime)) || row.arrScheduled,
+      arrEstimated: iso(adbTime_(a.revisedTime) || adbTime_(a.predictedTime) || adbTime_(a.scheduledTime)),
+      arrActual: iso(adbTime_(a.runwayTime) || (/^arrived$/i.test(status) ? adbTime_(a.revisedTime) : 0)),
+      checkedAt: now.toISOString(), note: '',
+    };
+    withLock_(() => update_('NH_Flight', row._row, patch));
+  });
+  FLIGHT_MEMO_ = null;
+  if (asked) PropertiesService.getScriptProperties().setProperty('FLIGHT_CHECKED_AT', now.toISOString());
+  tellLuan_(before, veNhaOut_());
+}
+
+/** Pushes to Luân when something about the flight changes. These ignore his sleep time (it's that night). */
+function tellLuan_(before, after) {
+  const vn = t => Utilities.formatDate(new Date(t), 'Asia/Ho_Chi_Minh', 'HH:mm');
+  const at = (t, tz) => Utilities.formatDate(new Date(t), tz, 'HH:mm');
+  const send = (title, body, tag) => push_('left', { title, body, tag: tag || 've-nha-flight' }, 3 * 3600);
+  const n = after.legs.length;
+  after.legs.forEach((l, i) => {
+    const b = before.legs.find(x => x.leg === l.leg && x.flight === l.flight) || { dep: {}, arr: {}, status: '' };
+    const isLast = i === n - 1;
+    const next = after.legs[i + 1];
+    if (/^(canceled|canceleduncertain)$/i.test(l.status) && b.status !== l.status) {
+      send(`⚠️ Chuyến ${l.flight} bị huỷ`, `${l.fromName} → ${l.toName}. Gọi cho Thư ngay nhé.`, 've-nha-alert');
+    } else if (/^diverted$/i.test(l.status) && b.status !== l.status) {
+      send(`⚠️ Chuyến ${l.flight} phải hạ cánh nơi khác`, `Không xuống ${l.toName} như dự kiến. Gọi cho Thư ngay nhé.`, 've-nha-alert');
+    }
+    if (l.dep.a && !b.dep.a) {
+      const eta = l.arr.e || l.arr.s;
+      send(`✈️ Thư đã cất cánh từ ${l.fromName}`,
+        `${l.flight}` + (eta ? ` · dự kiến tới ${l.toName} lúc ${at(eta, l.toTz)}` + (l.toTz !== 'Asia/Ho_Chi_Minh' ? ` (${vn(eta)} giờ VN)` : '') : ''));
+    }
+    if (l.arr.a && !b.arr.a) {
+      if (isLast) send('🧡 Thư hạ cánh rồi!', `${l.flight} đã đáp xuống ${l.toName} lúc ${vn(l.arr.a)}.`, 've-nha-landed');
+      else send(`🛬 Thư đã tới ${l.toName}`, next ? `Chuyến tiếp ${next.flight} cất cánh lúc ${at(next.dep.e || next.dep.s, next.fromTz)} giờ ${next.fromName} (${vn(next.dep.e || next.dep.s)} giờ VN).` : '');
+    }
+  });
+  // Delay on the final landing: tell when it moves by DELAY_NOTIFY_MIN or more since the last message.
+  const last = after.legs[n - 1];
+  if (last && !last.arr.a && last.arr.e && last.arr.s) {
+    const props = PropertiesService.getScriptProperties();
+    const told = t_(props.getProperty('FLIGHT_TOLD_ETA')) || t_(last.arr.s);
+    const eta = t_(last.arr.e);
+    if (Math.abs(eta - told) >= NH.FLIGHT.DELAY_NOTIFY_MIN * 60e3) {
+      const late = Math.round((eta - t_(last.arr.s)) / 60e3);
+      send(late > 0 ? `⏱ Thư sẽ hạ cánh trễ ${late} phút` : late < 0 ? `Thư sẽ hạ cánh sớm ${-late} phút` : 'Thư hạ cánh đúng giờ trở lại',
+        `${last.flight} dự kiến đáp xuống ${last.toName} lúc ${vn(eta)}, ${Utilities.formatDate(new Date(eta), 'Asia/Ho_Chi_Minh', 'dd/MM')}.`, 've-nha-eta');
+      props.setProperty('FLIGHT_TOLD_ETA', new Date(eta).toISOString());
+    }
+  }
+}
+
+/* ───── Reminders ───── */
+
+/**
+ * When Thư should leave home for the airport: the first flight's departure minus the time at the airport
+ * and the trip from Pinneberg. Trains don't run at night, so a time between LATEST_LEAVE and EARLIEST_LEAVE
+ * moves to LATEST_LEAVE the evening before. The "at" cell on the di-san-bay row overrides all this.
+ */
+function leaveHome_() {
+  const legs = flightLegs_();
+  const first = legs[0];
+  const arrives = scheduledArrival_();
+  const dep = (first && t_(first.depScheduled)) || (arrives ? arrives.getTime() - NH.FLIGHT.GUESS_TRIP_H * 3600e3 : 0);
+  if (!dep) return null;
+  const T = NH.TRAVEL;
+  let leave = new Date(dep - (T.AIRPORT_BEFORE_MIN + T.HOME_TO_AIRPORT_MIN) * 60e3);
+  const hm = Utilities.formatDate(leave, T.TZ, 'HH:mm');
+  const day = Utilities.formatDate(leave, T.TZ, 'yyyy-MM-dd');
+  if (hm >= T.LATEST_LEAVE) leave = localTime_(day, T.LATEST_LEAVE, T.TZ);
+  else if (hm < T.EARLIEST_LEAVE) {
+    const prev = Utilities.formatDate(new Date(localTime_(day, '12:00', T.TZ).getTime() - 864e5), T.TZ, 'yyyy-MM-dd');
+    leave = localTime_(prev, T.LATEST_LEAVE, T.TZ);
+  }
+  return { leave, dep: new Date(dep), flight: first ? first.flight.trim() : '' };
+}
+
+/** When one reminder row is due, or null. */
+function reminderDue_(r, side, people) {
   if (side !== 'left' && side !== 'right') return null;
+  const id = r.id.trim();
+  const at = t_(r.at);
+  if (id === 'di-san-bay') {   // "at" here is when she leaves home; the reminder comes NOTICE_MIN before
+    const leave = at ? new Date(at) : (leaveHome_() || {}).leave;
+    return leave ? new Date(leave.getTime() - NH.TRAVEL.NOTICE_MIN * 60e3) : null;
+  }
+  if (at) return new Date(at);
+  const arrives = scheduledArrival_();
+  if (!arrives) return null;
   if (id === '24-gio') return new Date(arrives.getTime() - 24 * 3600e3);
   const [y, m, d] = Utilities.formatDate(arrives, NH.ARRIVAL_TZ, 'yyyy-MM-dd').split('-').map(Number);
   const day = id === '1-thang' ? new Date(Date.UTC(y, m - 2, d))
     : id === '1-tuan' ? new Date(Date.UTC(y, m - 1, d - 7)) : null;
   if (!day) return null;
   return localTime_(Utilities.formatDate(day, 'UTC', 'yyyy-MM-dd'), NH.REMINDERS.AT, tzOf_(side, people));
+}
+
+/** {leave} {dep} {flight} in a reminder's text. */
+function fillReminder_(text, r) {
+  const plan = leaveHome_() || {};
+  const leave = t_(r.at) ? new Date(t_(r.at)) : plan.leave;
+  const T = NH.TRAVEL.TZ;
+  return String(text || '')
+    .replace(/\{leave\}/gi, leave ? Utilities.formatDate(leave, T, 'HH:mm') : '')
+    .replace(/\{dep\}/gi, plan.dep ? Utilities.formatDate(plan.dep, T, 'HH:mm') : '')
+    .replace(/\{flight\}/gi, plan.flight || 'của em');
 }
 
 /** "2026-12-15", "08:00", "Europe/Berlin" → that moment. */
@@ -486,26 +794,69 @@ function localTime_(ymd, hhmm, tz) {
   return new Date(`${ymd}T${hhmm}:00${off.slice(0, 3)}:${off.slice(3)}`);
 }
 
-/** Time trigger (setupReminders): sends each reminder in NH_Reminders once, when it is due. */
-function remindersTick() {
+function sendReminders_(now) {
   const arrives = arrivesAt_();
-  if (!arrives || Date.now() > arrives.getTime()) return;
-  const now = new Date();
+  if (!arrives || now > arrives) return;
   const windowMs = NH.REMINDERS.WINDOW_H * 3600e3;
   const people = people_();
   rows_('NH_Reminders').forEach(r => {
     if (r.sentAt.trim()) return;
     const side = SIDE_ALIAS_[String(r.to || '').trim().toLowerCase()];
-    const due = reminderDue_(r.id.trim(), side, arrives, people);
+    const due = reminderDue_(r, side, people);
     if (!due || now < due) return;
     if (now - due > windowMs) {
       withLock_(() => update_('NH_Reminders', r._row, { sentAt: 'bỏ lỡ: không gửi được trong ' + NH.REMINDERS.WINDOW_H + ' giờ' }));
       return;
     }
     const ttl = Math.round((due.getTime() + windowMs - now.getTime()) / 1000);
-    const n = push_(side, { title: r.title.trim() || 'Our Story', body: r.body.trim(), tag: 've-nha-' + r.id.trim() }, ttl);
+    const n = push_(side, { title: fillReminder_(r.title.trim(), r) || 'Our Story', body: fillReminder_(r.body.trim(), r), tag: 've-nha-' + r.id.trim() }, ttl);
     if (n) withLock_(() => update_('NH_Reminders', r._row, { sentAt: now.toISOString() }));
   });
+}
+
+/* ───── The 5-minute trigger ───── */
+
+/** Run once from the editor: starts the 5-minute check and logs the plan (rerun any time to see it again). */
+function setupVeNha() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => ['veNhaTick', 'remindersTick'].indexOf(t.getHandlerFunction()) >= 0)
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('veNhaTick').timeBased().everyMinutes(5).create();
+  showPlan();
+}
+
+/** Run from the editor: logs the landing time, the flight and when each reminder goes out. */
+function showPlan() {
+  syncTicket_();
+  const vnT = d => Utilities.formatDate(d, 'Asia/Ho_Chi_Minh', 'dd/MM HH:mm') + ' giờ VN';
+  const deT = d => Utilities.formatDate(d, NH.TRAVEL.TZ, 'dd/MM HH:mm') + ' giờ Đức';
+  const a = arrivesAt_();
+  Logger.log('Hạ cánh: ' + (a ? vnT(a) : 'chưa rõ (thiếu RIGHT_ARRIVES_AT và vé)'));
+  flightLegs_().forEach(l => Logger.log(`Chặng ${l.leg}: ${l.flight} ${l.from}→${l.to} ngày ${l.date} (${l.source || 'Luân điền'})`));
+  if (!PropertiesService.getScriptProperties().getProperty('AERODATABOX_KEY')) Logger.log('Chưa có AERODATABOX_KEY: chưa theo dõi chuyến bay.');
+  const plan = leaveHome_();
+  if (plan) Logger.log(`Thư rời nhà (tự tính): ${deT(plan.leave)}, bay ${deT(plan.dep)}`);
+  const people = people_();
+  rows_('NH_Reminders').forEach(r => {
+    const side = SIDE_ALIAS_[String(r.to || '').trim().toLowerCase()];
+    const due = reminderDue_(r, side, people);
+    Logger.log(`Nhắc ${r.id} → ${r.to}: ` + (due ? `${vnT(due)} / ${deT(due)}` : 'không rõ id hoặc người nhận') + (r.sentAt ? ` [đã gửi: ${r.sentAt}]` : ''));
+  });
+}
+
+/** Every 5 minutes (setupVeNha): ticket, flight status when due, then reminders. */
+function veNhaTick() {
+  const now = new Date();
+  const props = PropertiesService.getScriptProperties();
+  if (now.getTime() - t_(props.getProperty('TICKET_SYNC_AT')) >= NH.FLIGHT.TICKET_SYNC_MIN * 60e3) {
+    syncTicket_();
+    props.setProperty('TICKET_SYNC_AT', now.toISOString());
+  }
+  const gap = nextCheckGap_(now);
+  if (gap !== null && props.getProperty('AERODATABOX_KEY') && now.getTime() - t_(props.getProperty('FLIGHT_CHECKED_AT')) >= gap - 60e3) {
+    checkFlights_();
+  }
+  sendReminders_(now);
 }
 
 /* ───────────────────────── Firebase Cloud Messaging ───────────────────────── */
@@ -635,7 +986,7 @@ function rows_(name) {
     const o = { _row: i + 2 };
     head.forEach((h, j) => { o[h] = v[j] instanceof Date ? v[j].toISOString() : String(v[j]); });
     return o;
-  }).filter(o => o.id || o.token || o.side || o.text);
+  }).filter(o => o.id || o.token || o.side || o.text || o.leg);
 }
 
 /** Writes as plain text, so Sheets never turns "2026-11-03" into a date. */

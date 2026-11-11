@@ -46,6 +46,23 @@
 .vn-count span { font-size: .78rem; color: #6E6475; }
 .vn-when { margin-top: 10px !important; font-size: .86rem; line-height: 1.4; color: #6E6475; }
 
+/* The flights under the countdown. */
+.vn-flight { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(180, 86, 10, .3); }
+.vn-route { font-size: .86rem; font-weight: 600; line-height: 1.4; color: #2A1F2D; overflow-wrap: anywhere; }
+.vn-status {
+  display: flex; align-items: flex-start; gap: 7px;
+  width: fit-content; max-width: 100%;
+  margin-top: 6px !important; padding: 5px 11px 5px 9px;
+  border-radius: 12px; font-size: .84rem; font-weight: 600; line-height: 1.35;
+}
+.vn-status::before { content: ''; flex: none; width: 7px; height: 7px; margin-top: .42em; border-radius: 50%; background: currentColor; }
+.vn-tone-ok { background: #E3F4E6; color: #1F6B33; }
+.vn-tone-warn { background: #FFF0CC; color: #8A5A00; }
+.vn-tone-bad { background: #FDE2E2; color: #A3122A; }
+.vn-tone-quiet { background: #FFFFFF; color: #6E6475; }
+.vn-tone-quiet::before { display: none; }
+.vn-fresh { margin-top: 4px !important; font-size: .76rem; color: #6E6475; }
+
 .vn-is-home { background: linear-gradient(120deg, #FFE1F1 0%, #FFE6CC 100%); }
 .vn-arrived { font-family: 'Patrick Hand', 'Be Vietnam Pro', cursive; font-size: 1.9rem; line-height: 1.15; }
 .vn-is-home .vn-when { margin-top: 4px !important; }

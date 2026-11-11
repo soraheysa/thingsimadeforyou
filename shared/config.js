@@ -3,8 +3,9 @@
  */
 // Launch of the "nhớ" heart: 00:00 Saturday 7 Nov in Germany = 06:00 in Vietnam. Used twice below.
 const NHO_OPENS_AT = '2026-11-07T00:00:00+01:00';
-// Thư lands in Vietnam: 07:00 Friday 15 Jan 2027 in Vietnam = 01:00 in Germany.
-// Keep it the same as RIGHT_ARRIVES_AT in the Nhớ backend's Script properties (reminders and sleep times use that one).
+// Thư lands in Vietnam: 07:00 Friday 15 Jan 2027 in Vietnam = 01:00 in Germany. This is only the plan:
+// once she sends her ticket (Quà Giáng sinh page), the countdown follows the real flight, delays included.
+// Keep it the same as RIGHT_ARRIVES_AT in the Nhớ backend's Script properties.
 const RETURN_AT = '2027-01-15T07:00:00+07:00';
 
 window.SHARED_CONFIG = {
