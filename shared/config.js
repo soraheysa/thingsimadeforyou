@@ -46,9 +46,9 @@ window.SHARED_CONFIG = {
       text: 'Thế giới của riêng hai đứa mình, nơi mà những khoảnh khắc chỉ mình muốn cho nhau xem.',
       opensAt: '2026-11-19T00:00:00+07:00',     // 00:00 19 Nov in Vietnam = 18:00 18 Nov in Germany
       teaser: { title: 'Trò này sẽ được ra mắt sớm thôi nhé', status: 'Coming soon on my birthday' } },
-    { path: 'hu-dieu-uoc/', title: 'Hũ điều ước',
+    { path: 'dieu-uoc-cho-nhau/', title: 'Điều ước cho nhau',
       text: 'Thả vào hũ những điều mình ước, rồi mỗi ngày bốc một điều ước của nhau.',
-      opensAt: '2026-12-26T00:00:00+07:00',     // after Christmas: 00:00 26 Dec in Vietnam = 18:00 25 Dec in Germany
+      opensAt: '2026-12-26T00:00:00+01:00',     // after Christmas, Thư's time: 00:00 26 Dec in Germany = 06:00 in Vietnam
       teaser: { title: 'Lại thêm một trò nữa cho anh và em chơi với nhau', countdown: 'Coming soon in {time}' } },
   ],
 

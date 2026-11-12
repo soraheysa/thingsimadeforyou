@@ -1,5 +1,5 @@
 /*
- * Hũ điều ước — preview mode (open the page with ?demo). Fake wishes, kept in this browser only.
+ * Điều ước cho nhau — preview mode (open the page with ?demo). Fake wishes, kept in this browser only.
  * It runs the very same rules as the real backend (rules.js). Sign in on the home page with an
  * email containing "luan" to be Luân; anything else is Thư. Both sides share this fake data,
  * so you can switch sides and watch a wish travel from one to the other.
@@ -10,7 +10,7 @@
 (function () {
   'use strict';
   const R = window.HU_RULES;
-  const KEY = 'hu_mock_db_v1';
+  const KEY = 'hu_mock_db_v2';
   const AUTO_CONFIRM_MS = 5000;
 
   function dayKey(tz, ms) {
@@ -21,6 +21,7 @@
   const TZ = { left: 'Asia/Ho_Chi_Minh', right: 'Europe/Berlin' };
   const ago = days => Date.now() - days * 86400e3;
   const iso = ms => new Date(ms).toISOString();
+  const dayIn = days => dayKey('Asia/Ho_Chi_Minh', Date.now() + days * 86400e3);   // '2026-11-20'
 
   function row(o) {
     const w = {};
@@ -34,22 +35,24 @@
     const w = o => row(Object.assign({ id: 'demo' + (++n) }, o));
     return [
       // Luân's wishes
-      w({ author: 'left', category: 'both', title: 'Đi Đà Lạt cuối tuần, chỉ hai đứa', note: 'Thuê một căn nhà gỗ có lò sưởi.', createdAt: iso(ago(9)) }),
-      w({ author: 'left', category: 'self', title: 'Một đôi giày chạy bộ mới', note: 'Size 42, màu gì cũng được trừ màu cam.', link: 'https://example.com/giay', createdAt: iso(ago(8)),
+      w({ author: 'left', category: 'both', title: 'Đi Đà Lạt cuối tuần, chỉ hai đứa', note: 'Thuê một căn nhà gỗ có lò sưởi.', createdAt: iso(ago(9)), due: dayIn(-4) }),
+      w({ author: 'left', category: 'self', title: 'Một đôi giày chạy bộ mới', note: 'Size 42, màu gì cũng được trừ màu cam.', link: 'https://example.com/giay', createdAt: iso(ago(8)), due: dayIn(7),
         ...drawn('right', 2) }),   // Thư opened this one two days ago; Luân can't tell
       w({ author: 'left', category: 'someone', recipient: 'Mẹ', title: 'Máy massage cổ cho mẹ', note: 'Mẹ hay mỏi vai sau giờ làm.', createdAt: iso(ago(7)) }),
       w({ author: 'left', category: 'other', title: 'Dắt em đi ăn lẩu nấm ngày em về', createdAt: iso(ago(6)) }),
-      w({ author: 'left', category: 'both', title: 'Xem pháo hoa giao thừa cùng nhau', createdAt: iso(ago(5)) }),
+      w({ author: 'left', category: 'both', title: 'Xem pháo hoa giao thừa cùng nhau', createdAt: iso(ago(5)), due: dayIn(49) }),
       w({ author: 'left', category: 'self', title: 'Đọc xong một cuốn sách dày', note: 'Em chọn sách giúp anh.', createdAt: iso(ago(12)),
         ...drawn('right', 10), tapRight: iso(ago(4)), tapLeft: iso(ago(3)) }),
       // Thư's wishes
-      w({ author: 'right', category: 'self', title: 'Một chiếc khăn len màu kem', note: 'Dày một chút, quấn được hai vòng.', createdAt: iso(ago(9)),
+      w({ author: 'right', category: 'self', title: 'Một chiếc khăn len màu kem', note: 'Dày một chút, quấn được hai vòng.', createdAt: iso(ago(9)), due: dayIn(2),
         ...drawn('left', 1) }),
-      w({ author: 'right', category: 'both', title: 'Học nấu một món Huế cùng nhau', createdAt: iso(ago(8)) }),
+      w({ author: 'right', category: 'both', title: 'Học nấu một món Huế cùng nhau', note: 'Bún bò hoặc bánh bèo, món nào cũng được.', createdAt: iso(ago(8)), due: dayIn(42) }),
       w({ author: 'right', category: 'someone', recipient: 'Bé Na', title: 'Gửi quà sinh nhật cho bé Na', note: 'Bé thích khủng long.', createdAt: iso(ago(7)) }),
       w({ author: 'right', category: 'other', title: 'Đan cho anh một đôi găng tay', note: 'Màu xanh rêu.', createdAt: iso(ago(11)),
         tapRight: iso(ago(0.1)) }),   // Thư says it came true; waiting for Luân to confirm
       w({ author: 'right', category: 'self', title: 'Đi xem triển lãm ánh sáng', link: 'https://example.com/trien-lam', createdAt: iso(ago(5)) }),
+      w({ author: 'right', category: 'self', title: 'Một quyển sổ tay bìa vải', createdAt: iso(ago(4)), due: dayIn(-2),
+        ...drawn('left', 3) }),   // Luân drew it, the day has passed: grey, still doable
       w({ author: 'right', category: 'self', title: 'Một hộp màu nước mới', createdAt: iso(ago(14)),
         ...drawn('left', 13), tapLeft: iso(ago(6)), tapRight: iso(ago(6)) }),
       w({ author: 'right', category: 'both', title: 'Chạy chung một giải 5 km', createdAt: iso(ago(3)) }),
@@ -107,14 +110,14 @@
         if (!w || !R.canChange(w, side)) return err('not_found', 'Điều ước này không đổi được nữa.');
         const r = R.checkRecipient(w.category, v.value.recipient);
         if (!r.ok) return err('bad_request', r.message);
-        Object.assign(w, { title: v.value.title, note: v.value.note, link: v.value.link, editedAt: now,
+        Object.assign(w, { title: v.value.title, note: v.value.note, link: v.value.link, due: v.value.due, editedAt: now,
           recipient: w.category === 'someone' ? v.value.recipient : '' });
         return done();
       }
 
       case 'huDelete': {
         const w = find(body.id);
-        if (!w || !R.canChange(w, side)) return err('not_found', 'Điều ước này không đổi được nữa.');
+        if (!w || !R.canDelete(w, side)) return err('not_found', 'Điều ước này không xoá được.');
         Object.assign(w, { deleted: 'TRUE', deletedAt: now });
         return done();
       }
@@ -123,7 +126,7 @@
         if (R.drewToday(db.rows, side, today)) return err('drew_today', 'Hôm nay bốc rồi. Mai bốc tiếp nhé.');
         const pool = R.jarFor(db.rows, side);
         if (!pool.length) return err('empty', 'Hũ đang trống.');
-        const w = pool[Math.floor(Math.random() * pool.length)];
+        const w = R.pick(pool, today);
         Object.assign(w, { drawnBy: side, drawnAt: now, drawnDay: today });
         return done({ drawn: R.view(w, side) });
       }

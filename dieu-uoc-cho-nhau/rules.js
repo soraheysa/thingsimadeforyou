@@ -1,5 +1,5 @@
 /*
- * Hũ điều ước — the rules, in one place.
+ * Điều ước cho nhau — the rules, in one place.
  *
  * This same file runs in two places, so the preview and the real thing can never disagree:
  *  - in the browser (preview mode, via mock.js),
@@ -14,7 +14,9 @@
  *             'someone' for someone else        → goes into the jar (recipient = their name)
  *   drawnBy / drawnAt / drawnDay   who opened it from the jar, when, and on which local day
  *   tapLeft / tapRight             "Đã thành hiện thực" taps; granted when both are set
- *   deleted ('TRUE')               withdrawn by the author
+ *   deleted ('TRUE')               withdrawn by the author (only 'for the other' wishes can be deleted)
+ *   due ('2026-12-24' or '')       the day the author would like it to come true; wishes with a day
+ *                                  that hasn't passed are drawn before the others
  *
  * The doer ("assignee") is the one who drew it, or the author for a 'for the other' wish.
  * The doer taps first, then the other person confirms. The author never learns that a jar
@@ -27,7 +29,7 @@ var HU_RULES = (function () {
   var CATEGORIES = ['self', 'other', 'both', 'someone'];
   var JAR = ['self', 'both', 'someone'];
   var FIELDS = ['id', 'author', 'category', 'title', 'note', 'link', 'recipient', 'createdAt', 'editedAt',
-    'drawnBy', 'drawnAt', 'drawnDay', 'tapLeft', 'tapRight', 'deleted', 'deletedAt'];
+    'drawnBy', 'drawnAt', 'drawnDay', 'tapLeft', 'tapRight', 'deleted', 'deletedAt', 'due'];
 
   function otherOf(side) { return side === 'left' ? 'right' : 'left'; }
   function isDeleted(w) { return w.deleted === 'TRUE'; }
@@ -72,8 +74,18 @@ var HU_RULES = (function () {
     var link = normalizeLink(input.link);
     if (link === null) return { ok: false, field: 'link', message: 'Đường link chưa đúng. Dán cả địa chỉ, ví dụ https://shopee.vn/…' };
     v.link = link;
+    v.due = String(input.due == null ? '' : input.due).trim();
+    if (v.due && !validDay(v.due)) return { ok: false, field: 'due', message: 'Ngày chưa đúng. Chọn lại ngày nhé.' };
     v.recipient = clean(input.recipient, LIMITS.RECIPIENT).replace(/\s+/g, ' ');
     return { ok: true, value: v };
+  }
+
+  /** '2026-12-24' that is a real calendar day. */
+  function validDay(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (!m) return false;
+    var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    return d.getUTCFullYear() === +m[1] && d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3];
   }
 
   /** The recipient only matters for 'someone' wishes. */
@@ -87,6 +99,18 @@ var HU_RULES = (function () {
     return rows.filter(function (w) {
       return w.author !== side && JAR.indexOf(w.category) >= 0 && !w.drawnBy && !isDeleted(w);
     });
+  }
+
+  /** Every wish still in the shared jar, from both of us (drives how full the jar looks). */
+  function jarTotal(rows) {
+    return rows.filter(function (w) { return JAR.indexOf(w.category) >= 0 && !w.drawnBy && !isDeleted(w); }).length;
+  }
+
+  /** Which wish a draw opens: one with a day that hasn't passed yet if there is any, else any. rand() → [0,1). */
+  function pick(pool, today, rand) {
+    var dated = pool.filter(function (w) { return w.due && w.due >= today; });
+    var from = dated.length ? dated : pool;
+    return from.length ? from[Math.floor((rand || Math.random)() * from.length)] : null;
   }
 
   /** One draw per day, by the drawer's own calendar day. Withdrawn wishes still count. */
@@ -108,6 +132,7 @@ var HU_RULES = (function () {
     var base = {
       id: w.id, author: w.author, category: w.category, title: w.title, note: w.note, link: w.link,
       recipient: w.category === 'someone' ? w.recipient : '', createdAt: w.createdAt, editedAt: w.editedAt,
+      due: w.due || '',
     };
 
     if (isDeleted(w)) {
@@ -131,7 +156,7 @@ var HU_RULES = (function () {
       assignee: revealed ? doer : '',
       drawnAt: revealed && w.category !== 'other' ? w.drawnAt : '',
       myTap: !!tapOf(w, side), otherTap: revealed ? !!tapOf(w, other) : false,
-      grantedAt: grantedAt(w), canEdit: editable, canDelete: editable,
+      grantedAt: grantedAt(w), canEdit: editable, canDelete: editable && w.category === 'other',
     });
   }
 
@@ -170,18 +195,23 @@ var HU_RULES = (function () {
     return !(doer && tapOf(w, doer)) && !isGranted(w);
   }
 
+  /** Deleting: only a 'for the other' wish (the author's own to-do). Jar wishes can only be edited,
+   *  so a missing delete button never gives away that a wish was drawn. */
+  function canDelete(w, side) { return canChange(w, side) && w.category === 'other'; }
+
   /** Everything one person sees: their cards plus the jar. */
   function stateFor(rows, side, today) {
     var cards = [];
     rows.forEach(function (w) { var c = view(w, side); if (c) cards.push(c); });
-    return { me: { side: side }, cards: cards, jar: { count: jarFor(rows, side).length, drewToday: drewToday(rows, side, today) } };
+    return { me: { side: side }, cards: cards,
+      jar: { count: jarFor(rows, side).length, total: jarTotal(rows), drewToday: drewToday(rows, side, today) } };
   }
 
   return {
     LIMITS: LIMITS, CATEGORIES: CATEGORIES, JAR: JAR, FIELDS: FIELDS,
     otherOf: otherOf, assignee: assignee, isGranted: isGranted, grantedAt: grantedAt,
     clean: clean, normalizeLink: normalizeLink, validate: validate, checkRecipient: checkRecipient,
-    jarFor: jarFor, drewToday: drewToday, view: view, grant: grant, ungrant: ungrant,
-    canChange: canChange, stateFor: stateFor,
+    validDay: validDay, jarFor: jarFor, jarTotal: jarTotal, pick: pick, drewToday: drewToday, view: view, grant: grant, ungrant: ungrant,
+    canChange: canChange, canDelete: canDelete, stateFor: stateFor,
   };
 })();

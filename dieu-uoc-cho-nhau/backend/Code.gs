@@ -1,23 +1,23 @@
 /**
- * Hũ điều ước — backend (Google Apps Script web app).
+ * Điều ước cho nhau — backend (Google Apps Script web app).
  *
  * Its own Apps Script project, like Lăng kính. It never sees the access code: every request carries
  * the email + token the pages already hold, and this script asks the Hai nửa backend ("whoami")
  * whether they are valid. Nothing changes in the Hai nửa code.
  *
- * The rules (who sees what, the jar, one draw a day, the two taps) live in hu-dieu-uoc/rules.js,
+ * The rules (who sees what, the jar, one draw a day, the two taps) live in dieu-uoc-cho-nhau/rules.js,
  * which the preview uses too. This project needs a copy of it as a second file named Rules.gs.
  *
  * Setup (once):
- *  1. script.google.com → New project → name it "Hũ điều ước" → paste this file as Code.gs.
- *  2. File + → Script → name it Rules → paste all of hu-dieu-uoc/rules.js into it.
+ *  1. script.google.com → New project → name it "Điều ước cho nhau" → paste this file as Code.gs.
+ *  2. File + → Script → name it Rules → paste all of dieu-uoc-cho-nhau/rules.js into it.
  *  3. Project Settings → Script properties → add
  *       AUTH_API_URL = the Hai nửa web app URL (…/exec), the same as AUTH_API_URL in shared/config.js
  *       FOLDER_ID    = (optional) a Drive folder id, to keep the data sheet there
  *  4. Choose the function "setup" in the toolbar → Run → allow access.
- *     It creates a spreadsheet "Hũ điều ước – data" with one tab, HU_Wishes.
+ *     It creates a spreadsheet "Điều ước cho nhau – data" with one tab, HU_Wishes.
  *  5. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone → Deploy.
- *  6. Copy the URL (…/exec) into API_URL in hu-dieu-uoc/config.js.
+ *  6. Copy the URL (…/exec) into API_URL in dieu-uoc-cho-nhau/config.js.
  * Later code changes (here or in Rules.gs): Deploy → Manage deployments → edit (pencil) →
  * Version: New version. That keeps the same URL.
  *
@@ -38,7 +38,7 @@ function setup() {
   if (p.getProperty('SHEET_ID')) {
     ss = SpreadsheetApp.openById(p.getProperty('SHEET_ID'));
   } else {
-    ss = SpreadsheetApp.create('Hũ điều ước – data');
+    ss = SpreadsheetApp.create('Điều ước cho nhau – data');
     p.setProperty('SHEET_ID', ss.getId());
     const folder = p.getProperty('FOLDER_ID');
     if (folder) DriveApp.getFileById(ss.getId()).moveTo(DriveApp.getFolderById(folder));
@@ -56,7 +56,7 @@ function setup() {
 /* ───────────────────────── Web app ───────────────────────── */
 
 function doGet() {
-  return out_({ ok: true, app: 'hu-dieu-uoc' });
+  return out_({ ok: true, app: 'dieu-uoc-cho-nhau' });
 }
 
 function doPost(e) {
@@ -110,7 +110,7 @@ const ACTIONS = {
       const r = HU_RULES.checkRecipient(w.category, v.value.recipient);
       if (!r.ok) return bad_(r.message);
       update_(w._row, {
-        title: v.value.title, note: v.value.note, link: v.value.link,
+        title: v.value.title, note: v.value.note, link: v.value.link, due: v.value.due,
         recipient: w.category === 'someone' ? v.value.recipient : '',
         editedAt: new Date().toISOString(),
       });
@@ -121,7 +121,7 @@ const ACTIONS = {
   huDelete(req, me) {
     return withLock_(() => {
       const w = find_(req.id);
-      if (!w || !HU_RULES.canChange(w, me.side)) return notFound_();
+      if (!w || !HU_RULES.canDelete(w, me.side)) return notFound_();
       update_(w._row, { deleted: 'TRUE', deletedAt: new Date().toISOString() });
       return state_(me, req);
     });
@@ -137,7 +137,7 @@ const ACTIONS = {
       }
       const pool = HU_RULES.jarFor(rows, me.side);
       if (!pool.length) return { ok: false, error: 'empty', message: 'Hũ đang trống.' };
-      const w = pool[Math.floor(Math.random() * pool.length)];
+      const w = HU_RULES.pick(pool, today);   // a wish with a day that hasn't passed comes first
       const patch = { drawnBy: me.side, drawnAt: new Date().toISOString(), drawnDay: today };
       update_(w._row, patch);
       Object.assign(w, patch);

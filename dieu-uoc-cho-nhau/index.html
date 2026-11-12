@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#5A3191">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Our Story">
+  <script src="../shared/pwa.js"></script>
+  <title>Điều ước cho nhau</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Patrick+Hand&display=swap&subset=vietnamese" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <p class="preview-banner" id="preview-banner" hidden>Bản xem thử với dữ liệu giả. Không có gì được lưu lên mạng. <button class="link" id="btn-reset" type="button">Làm lại từ đầu</button></p>
+
+  <!-- First screen: the jar -->
+  <section class="stage" id="stage" aria-labelledby="stage-title">
+    <div class="stage-bar">
+      <a class="round-link" href="../" aria-label="Về trang chính">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+    </div>
+    <div class="stage-text">
+      <h1 class="title" id="stage-title">Điều ước cho nhau</h1>
+      <p class="stage-line" id="stage-line">Đang mở nắp hũ…</p>
+      <p class="stage-sub" id="stage-sub"></p>
+      <button class="chip-link" id="btn-see-todo" type="button" hidden></button>
+    </div>
+    <div class="jar-wrap">
+      <button class="jar" id="jar" type="button" aria-label="Chạm vào hũ để bốc một điều ước" disabled></button>
+    </div>
+    <a class="to-list" href="#list-area">
+      Danh sách
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </a>
+  </section>
+
+  <!-- The lists -->
+  <main class="main" id="list-area">
+    <section class="confirm-zone" id="confirm-zone" hidden aria-labelledby="confirm-zone-title">
+      <h2 id="confirm-zone-title"></h2>
+      <div class="cards" id="confirm-list"></div>
+    </section>
+
+    <div class="toolbar">
+      <div class="seg" id="tabs" role="tablist" aria-label="Danh sách">
+        <button type="button" role="tab" data-tab="wishes" aria-selected="true"></button>
+        <button type="button" role="tab" data-tab="todo" aria-selected="false"></button>
+      </div>
+      <label class="sort">
+        <span>Sắp xếp</span>
+        <select id="sort"></select>
+      </label>
+    </div>
+
+    <p class="tab-help" id="tab-help"></p>
+    <div class="cards" id="list" role="tabpanel" aria-live="polite">
+      <p class="empty">Đang tải…</p>
+    </div>
+  </main>
+
+  <!-- Floating "Thêm điều ước": white on the jar screen, the person's own colour on the list -->
+  <div class="fab-wrap" id="fab-wrap">
+    <button class="fab" id="btn-new" type="button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      <span>Thêm điều ước</span>
+    </button>
+  </div>
+
+  <!-- The wish note -->
+  <dialog class="note" id="dlg-note" aria-labelledby="note-title">
+    <form id="form-note" method="dialog" novalidate>
+      <span class="tape" aria-hidden="true"></span>
+      <div class="note-head">
+        <h2 id="note-title">Thêm điều ước</h2>
+        <button class="round" type="button" id="btn-note-close" aria-label="Đóng"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+
+      <fieldset class="cats">
+        <legend>Điều ước này dành cho<span class="req" aria-hidden="true"> *</span></legend>
+        <div class="cat-grid" id="cat-grid"></div>
+        <p class="hint" id="cat-help" hidden></p>
+      </fieldset>
+
+      <div class="field" id="field-recipient" hidden>
+        <label for="in-recipient">Cho ai?<span class="req" aria-hidden="true"> *</span></label>
+        <input id="in-recipient" type="text" autocomplete="off" placeholder="Ví dụ: Mẹ, bé Na, nhóm bạn thân">
+      </div>
+      <div class="field">
+        <label for="in-title">Điều ước<span class="req" aria-hidden="true"> *</span></label>
+        <input id="in-title" type="text" autocomplete="off" required placeholder="Ví dụ: Một chuyến Đà Lạt chỉ hai đứa">
+      </div>
+      <div class="field">
+        <label for="in-note">Ghi chú</label>
+        <textarea id="in-note" rows="2"></textarea>
+      </div>
+      <div class="field">
+        <label for="in-link">Link</label>
+        <input id="in-link" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…">
+      </div>
+      <div class="field due-box">
+        <label for="in-due" id="due-label"></label>
+        <div class="due-row">
+          <input id="in-due" type="date">
+          <button class="btn-clear" type="button" id="btn-clear-due">Xóa ngày</button>
+        </div>
+        <p class="hint" id="due-help"></p>
+      </div>
+
+      <p class="form-error" id="note-error" role="alert"></p>
+      <button class="btn-main" type="submit" id="btn-submit" disabled>Thả vào hũ</button>
+    </form>
+  </dialog>
+
+  <!-- "Bốc được rồi!": closes itself after a few seconds -->
+  <dialog class="reveal" id="dlg-reveal" aria-labelledby="reveal-title">
+    <h2 id="reveal-title">Bốc được rồi!</h2>
+    <div id="reveal-card"></div>
+    <p class="reveal-text" id="reveal-text"></p>
+    <button class="btn-main btn-drain" type="button" id="btn-reveal-done"><span class="drain" aria-hidden="true"></span><span id="reveal-label"></span></button>
+  </dialog>
+
+  <!-- Yes / no questions (these never close by themselves) -->
+  <dialog class="ask" id="dlg-ask" aria-labelledby="ask-title">
+    <h2 id="ask-title"></h2>
+    <p id="ask-text"></p>
+    <div class="ask-actions">
+      <button class="btn-soft" type="button" data-answer="no" id="ask-no"></button>
+      <button class="btn-danger" type="button" data-answer="yes" id="ask-yes"></button>
+    </div>
+  </dialog>
+
+  <svg class="flyer" id="flyer" viewBox="0 0 56 36" aria-hidden="true">
+    <path d="M2 4 L28 2 L54 4 L52 32 L28 34 L4 32 Z" stroke-width="1.4"/>
+    <path d="M28 2 L28 34 M2 4 L28 18 L54 4" fill="none" stroke-width="1" opacity=".7"/>
+  </svg>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="../shared/config.js"></script>
+  <script src="../shared/mock.js"></script>
+  <script src="../shared/auth.js"></script>
+  <script src="config.js"></script>
+  <script src="rules.js"></script>
+  <script src="mock.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
