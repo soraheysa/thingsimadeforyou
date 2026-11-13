@@ -4,7 +4,7 @@
 window.LK_CONFIG = {
   // The Lăng kính backend: Apps Script web app URL (ends in /exec). See backend/Code.gs.
   // Sign-in itself still goes through the Hai nửa backend (AUTH_API_URL in ../shared/config.js).
-  API_URL: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbwVhgu7kXHwpGm2EP2Q8vwF5uSo15HVDr33NhbNJ0jHv54EA56SqyX5d3dMLqKmZiFy8Q/exec',
 
   // How often the board checks for the other person's new posts while it is open.
   POLL_SECONDS: 45,
