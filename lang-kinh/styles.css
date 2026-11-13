@@ -117,12 +117,21 @@ button { font: inherit; }
 /* ───────── A post (polaroid or sticky note) ───────── */
 .post {
   position: relative; flex: none; width: 260px;
-  transform: rotate(var(--tilt, 0deg)); transform-origin: 50% 0;
+  --rot: var(--tilt, 0deg);
+  transform: rotate(var(--rot)); transform-origin: 50% 0;
   animation: lk-in .5s ease-out both;
 }
 .post.is-note { width: 240px; }
-@keyframes lk-in { from { opacity: 0; transform: rotate(var(--tilt, 0deg)) translateY(-14px); } }
+@keyframes lk-in { from { opacity: 0; transform: rotate(var(--rot)) translateY(-14px); } }
 .track.no-anim .post { animation: none; }
+/* A post that just arrived (yours or the other person's) slides up onto the thread and settles. */
+.track .post.is-new { animation: lk-up .75s cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes lk-up {
+  0%   { opacity: 0; transform: translateY(90px) rotate(calc(var(--rot) + 6deg)); }
+  55%  { opacity: 1; transform: translateY(-8px) rotate(calc(var(--rot) - 2deg)); }
+  80%  { transform: translateY(2px) rotate(calc(var(--rot) + .8deg)); }
+  100% { opacity: 1; transform: rotate(var(--rot)); }
+}
 .card {
   position: relative; border-radius: 10px; background: var(--paper-bg, #FFFDF9);
   box-shadow: 0 12px 24px rgba(42, 31, 45, .28);
@@ -224,8 +233,8 @@ button { font: inherit; }
 
   .track .post, .track .post.is-note { width: calc(50% - 30px); max-width: 200px; margin-top: -40px; }
   .track .post.is-first { margin-top: 0; }
-  .post.pos-l { margin-left: auto; margin-right: calc(50% + 16px); transform: rotate(calc(-1 * var(--mtilt, 4deg))); transform-origin: 100% 0; }
-  .post.pos-r { margin-left: calc(50% + 16px); margin-right: auto; transform: rotate(var(--mtilt, 4deg)); transform-origin: 0 0; }
+  .post.pos-l { margin-left: auto; margin-right: calc(50% + 16px); --rot: calc(-1 * var(--mtilt, 4deg)); transform-origin: 100% 0; }
+  .post.pos-r { margin-left: calc(50% + 16px); margin-right: auto; --rot: var(--mtilt, 4deg); transform-origin: 0 0; }
   @keyframes lk-in { from { opacity: 0; } }
 
   .track .is-photo .card { padding: 9px 9px 0; }
@@ -253,6 +262,24 @@ button { font: inherit; }
 /* ───────── Dialogs ───────── */
 dialog { padding: 0; border: 0; color: var(--ink); }
 dialog::backdrop { background: rgba(10, 12, 30, .55); }
+
+/* Sheets slide up when they open and back down when they close (button, Esc, or dragging down). */
+.sheet[open], .viewer[open] { animation: lk-sheet-up .34s cubic-bezier(.2, .85, .25, 1); }
+.sheet[open]::backdrop, .viewer[open]::backdrop { animation: lk-fade .3s ease-out; }
+.sheet.is-closing, .viewer.is-closing { animation: lk-sheet-down .24s ease-in forwards; }
+.sheet.is-closing::backdrop, .viewer.is-closing::backdrop { animation: lk-fade .24s ease-in reverse forwards; }
+.sheet.is-dragging, .viewer.is-dragging { animation: none; transition: none; user-select: none; }
+.sheet.is-settling, .viewer.is-settling { animation: none; transition: transform .26s cubic-bezier(.2, .85, .25, 1); }
+@keyframes lk-sheet-up { from { transform: translateY(min(100%, 100vh)); } to { transform: none; } }
+@keyframes lk-sheet-down { from { transform: translateY(var(--drag, 0px)); } to { transform: translateY(min(100%, 100vh)); } }
+@keyframes lk-fade { from { opacity: 0; } to { opacity: 1; } }
+.viewer-grip {
+  position: absolute; left: 50%; top: max(6px, env(safe-area-inset-top)); width: 40px; height: 4px; margin-left: -20px;
+  border-radius: 4px; background: rgba(255, 255, 255, .35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open], .viewer[open], .sheet.is-closing, .viewer.is-closing, .track .post.is-new { animation-duration: .01s; }
+}
 
 .sheet {
   width: min(460px, 100vw); max-width: 100vw; max-height: min(92vh, 860px); margin: auto;
@@ -339,7 +366,7 @@ dialog::backdrop { background: rgba(10, 12, 30, .55); }
 }
 .viewer-body { flex: 1; min-height: 0; display: flex; gap: 32px; align-items: center; justify-content: center; padding: 8px 24px 24px; overflow-y: auto; }
 .viewer-post { flex: none; display: flex; justify-content: center; padding: 34px 20px 10px; }
-.viewer-post .post { width: min(400px, 82vw); animation: none; transform: rotate(-1.5deg); margin: 0; }
+.viewer-post .post { width: min(400px, 82vw); animation: none; --rot: -1.5deg; margin: 0; }
 .viewer-post .post .photo { aspect-ratio: auto; min-height: 120px; background: #2A2D4A; cursor: default; }
 .viewer-post .post .photo img { position: static; display: block; width: 100%; height: auto; max-height: 62vh; object-fit: contain; }
 .viewer-post .post .photo img.is-soft { position: absolute; height: 100%; }

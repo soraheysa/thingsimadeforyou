@@ -34,6 +34,7 @@
     pack: null, mine: null,        // sticker lists for the tray
     place: null,                   // this device's place (rounded)
     viewing: null, trayTab: 'pack',
+    known: new Set(),              // posts already on the thread: anything else slides up when it arrives
   };
 
   /* ───────── Icons ───────── */
@@ -247,10 +248,15 @@
     if (!state.posts.length) parts.push('<p class="empty">Sợi chỉ còn trống. Kẹp tấm đầu tiên nhé!</p>');
     else {
       parts.push('<div class="washi">Mới nhất</div>');
-      state.posts.forEach((p, i) => parts.push(cardHTML(p, { index: i })));
+      state.posts.forEach((p, i) => {
+        let html = cardHTML(p, { index: i });
+        if (!state.known.has(p.id)) html = html.replace('class="post ', 'class="post is-new ');
+        parts.push(html);
+      });
       if (state.hasMore) parts.push('<span class="more-mark" aria-hidden="true">…</span>');
     }
     $('#track').innerHTML = parts.join('');
+    state.posts.forEach(p => state.known.add(p.id));
     fillImages();
     updateNav();
   }
@@ -283,6 +289,7 @@
     if (!r.ok) { $('#track').innerHTML = `<div class="thread" aria-hidden="true"></div><p class="empty">${esc(errText(r))}</p>`; return false; }
     if (r.me && r.me.side) me.side = r.me.side;
     state.posts = r.posts || [];
+    state.posts.forEach(p => state.known.add(p.id));
     state.hasMore = !!r.hasMore;
     state.places = r.places || {};
     render();
@@ -314,6 +321,7 @@
     if (!r.ok) return;
     const have = new Set(state.posts.map(p => p.id));
     state.posts = state.posts.concat((r.posts || []).filter(p => !have.has(p.id)));
+    state.posts.forEach(p => state.known.add(p.id));
     state.hasMore = !!r.hasMore;
     render();
   }
@@ -432,7 +440,7 @@
     const r = await api('lkDelete', { id: p.id });
     if (!r.ok) { toast(errText(r)); return; }
     state.posts = state.posts.filter(x => x.id !== p.id);
-    $('#dlg-viewer').close();
+    closeSheet($('#dlg-viewer'));
     render();
     toast('Đã gỡ ghim khỏi sợi chỉ.');
   }
@@ -560,7 +568,7 @@
       btn.disabled = false;
       if (!r.ok) { err.textContent = errText(r); return; }
       Object.assign(p, r.post);
-      $('#dlg-compose').close();
+      closeSheet($('#dlg-compose'));
       rerenderPost(p);
       if (state.viewing === p) renderViewer();
       toast('Đã lưu.');
@@ -593,7 +601,7 @@
       uploadOriginal(r.post.id, compose.file);
     }
     state.posts.unshift(r.post);
-    $('#dlg-compose').close();
+    closeSheet($('#dlg-compose'));
     render();
     $('#board').scrollTo({ left: 0, top: 0, behavior: 'smooth' });
     toast('Đã kẹp lên sợi chỉ.');
@@ -651,6 +659,84 @@
     }
   }
 
+  /* ───────── Sheets: slide down to close (button, Esc, or drag) ───────── */
+  function closeSheet(dlg, fromDrag) {
+    if (!dlg || !dlg.open || dlg.classList.contains('is-closing')) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { dlg.close(); return; }
+    if (!fromDrag) dlg.style.removeProperty('--drag');
+    dlg.classList.remove('is-dragging', 'is-settling');
+    dlg.style.transform = '';
+    dlg.classList.add('is-closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      dlg.classList.remove('is-closing');
+      dlg.style.removeProperty('--drag');
+      dlg.close();
+    };
+    dlg.addEventListener('animationend', finish, { once: true });
+    setTimeout(finish, 400);   // in case the animation never reports back
+  }
+
+  /**
+   * Drag a sheet down to close it, like a phone bottom sheet.
+   * The drag starts only when the sheet's scroll area is at the top (or on a grip area), so scrolling still works.
+   */
+  function enableDragClose(dlg, scroller, grips) {
+    let y0 = 0, t0 = 0, dy = 0, armed = false, dragging = false, fromGrip = false, moved = false;
+    const atTop = () => { const sc = scroller(); return !sc || sc.scrollTop <= 0; };
+    const skip = el => el.closest('input, textarea, select, [contenteditable="true"]');
+
+    function start(y, target) {
+      if (!dlg.open || dlg.classList.contains('is-closing') || skip(target)) return;
+      armed = true; dragging = false; moved = false; dy = 0; y0 = y; t0 = performance.now();
+      fromGrip = !!(grips && target.closest(grips));
+    }
+    function move(y, e) {
+      if (!armed) return;
+      const d = y - y0;
+      if (!dragging) {
+        if (Math.abs(d) < 8) return;
+        if (d < 0 || (!fromGrip && !atTop())) { armed = false; return; }   // an upward move or a scroll
+        dragging = true;
+        dlg.classList.add('is-dragging');
+      }
+      if (e && e.cancelable) e.preventDefault();
+      moved = true;
+      dy = Math.max(0, d);
+      dlg.style.transform = 'translateY(' + dy + 'px)';
+    }
+    function end() {
+      if (!armed) return;
+      armed = false;
+      if (!dragging) return;
+      dragging = false;
+      setTimeout(() => { moved = false; }, 0);   // only the click that ends this drag is swallowed
+      const speed = dy / Math.max(1, performance.now() - t0);   // px per ms
+      dlg.classList.remove('is-dragging');
+      if (dy > Math.min(140, dlg.offsetHeight * 0.25) || (dy > 40 && speed > 0.6)) {
+        dlg.style.setProperty('--drag', dy + 'px');
+        closeSheet(dlg, true);
+      } else {
+        dlg.classList.add('is-settling');
+        dlg.style.transform = '';
+        setTimeout(() => dlg.classList.remove('is-settling'), 300);
+      }
+    }
+
+    dlg.addEventListener('touchstart', e => { if (e.touches.length === 1) start(e.touches[0].clientY, e.target); }, { passive: true });
+    dlg.addEventListener('touchmove', e => { if (e.touches.length === 1) move(e.touches[0].clientY, e); }, { passive: false });
+    dlg.addEventListener('touchend', end);
+    dlg.addEventListener('touchcancel', end);
+    dlg.addEventListener('mousedown', e => { if (e.button === 0) start(e.clientY, e.target); });
+    window.addEventListener('mousemove', e => move(e.clientY, e));
+    window.addEventListener('mouseup', end);
+    // A drag that ends on a button must not also press it.
+    dlg.addEventListener('click', e => { if (moved) { moved = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  }
+
   /* ───────── Wiring ───────── */
   function wire() {
     $('#paper-grid').innerHTML = C.PAPERS.map(p =>
@@ -675,7 +761,10 @@
     $('#in-caption').addEventListener('input', syncCompose);
     $('#in-note').addEventListener('input', syncCompose);
     $('#form-compose').addEventListener('submit', submitCompose);
-    $$('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+    $$('[data-close]').forEach(b => b.addEventListener('click', () => closeSheet(b.closest('dialog'))));
+    [$('#dlg-compose'), $('#dlg-viewer')].forEach(d => d.addEventListener('cancel', e => { e.preventDefault(); closeSheet(d); }));
+    enableDragClose($('#dlg-viewer'), () => $('#dlg-viewer .viewer-body'));
+    enableDragClose($('#dlg-compose'), () => $('#dlg-compose'), '.sheet-grip, .sheet-head, .compose-preview');
 
     // The board
     $('#track').addEventListener('click', e => {
@@ -753,7 +842,10 @@
     wire();
     startSky();
     if (NO_BACKEND) {
-      $('#track').innerHTML = '<div class="thread" aria-hidden="true"></div><p class="empty">Lăng kính đang được nối với máy chủ. Đợi anh chút nhé.</p>';
+      const why = A.early && A.early()
+        ? 'Chưa nối máy chủ: API_URL trong lang-kinh/config.js đang trống.'
+        : 'Lăng kính đang được nối với máy chủ. Đợi anh chút nhé.';
+      $('#track').innerHTML = '<div class="thread" aria-hidden="true"></div><p class="empty">' + why + '</p>';
       updateOtherChip();
       return;
     }
