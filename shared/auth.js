@@ -116,6 +116,22 @@
 
   const thing = path => (CFG.THINGS || []).find(t => t.path === path) || null;
 
+  /** This device's side may open things before their launch date (SHARED_CONFIG.EARLY_ACCESS_SIDES). */
+  const early = () => (CFG.EARLY_ACCESS_SIDES || []).indexOf(ls.get('side')) >= 0;
+
+  /** A small note at the top of an early-opened page: who else can't see it yet, and for how long. */
+  function earlyBadge(t) {
+    const el = document.createElement('div');
+    el.setAttribute('role', 'status');
+    el.style.cssText = 'position:fixed;left:50%;top:max(10px,env(safe-area-inset-top));transform:translateX(-50%);z-index:9999;' +
+      'max-width:calc(100% - 32px);padding:6px 14px;border-radius:999px;background:rgba(42,31,45,.88);color:#fff;' +
+      "font:600 13px/1.4 'Be Vietnam Pro',system-ui,sans-serif;text-align:center;pointer-events:none;transition:opacity .4s";
+    el.textContent = 'Chỉ anh thấy · em mở sau ' + countdownText(opensIn(t));
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; }, 4000);
+    setTimeout(() => el.remove(), 4500);
+  }
+
   /** Milliseconds until a thing opens; 0 when it is open (or has no date). */
   function opensIn(t) {
     if (!t || !t.opensAt) return 0;
@@ -149,6 +165,7 @@
   function waitForRelease(path) {
     const t = thing(path);
     if (!opensIn(t)) return Promise.resolve();
+    if (early()) { earlyBadge(t); return Promise.resolve(); }
 
     const css = document.createElement('link');
     css.rel = 'stylesheet';
@@ -198,6 +215,6 @@
     DEMO, ROOT, ls, ss,
     credentials, post, call, require, expired, signOut,
     saveSession, hubUrl, safeNext, hasSession, confirmed,
-    thing, opensIn, countdownText, openTimeText, waitForRelease,
+    thing, opensIn, countdownText, openTimeText, waitForRelease, early,
   };
 })();

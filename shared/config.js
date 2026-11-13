@@ -11,6 +11,11 @@ window.SHARED_CONFIG = {
   // It also handles sign-in for every page here. While empty, the site runs in preview mode.
   AUTH_API_URL: 'https://script.google.com/macros/s/AKfycbwReTu_3fDlmwowpR1tPRUYbXCQ4iQ30i0MsBxpu_JHZUKgGmv53ERpkI-ScrJJt50h4A/exec',
 
+  // These sides open every feature before its launch date (opensAt below, and the Nhớ heart),
+  // to fill it in and test it. The home list marks such items "Chỉ anh thấy". 'left' Luân, 'right' Thư.
+  // Thư's side stays locked until each launch; to stop early access, empty the list: [].
+  EARLY_ACCESS_SIDES: ['left'],
+
   // First screen.
   INVITE_TITLE: 'Thư ơi, chơi cùng anh nhé?',
   INVITE_TEXT: 'Một chuỗi trò chơi nhỏ trên mạng, anh làm riêng cho em. Đăng nhập một lần ở đây là mở được tất cả.',

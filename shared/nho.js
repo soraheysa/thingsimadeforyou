@@ -24,7 +24,8 @@
   const POLL = Math.max(20, CFG.POLL_SECONDS || 60) * 1000;
   // Launch date (NHO.OPENS_AT): hidden until then, except for EARLY_SIDES (and preview mode).
   const OPENS = Date.parse(CFG.OPENS_AT || '') || 0;
-  const isOpen = () => A.DEMO || !OPENS || Date.now() >= OPENS || (CFG.EARLY_SIDES || []).indexOf(A.ls.get('side')) >= 0;
+  const isOpen = () => A.DEMO || !OPENS || Date.now() >= OPENS || (A.early && A.early())
+    || (CFG.EARLY_SIDES || []).indexOf(A.ls.get('side')) >= 0;
   let openTimer = null;
 
   const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return ''; } })();

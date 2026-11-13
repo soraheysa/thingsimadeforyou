@@ -125,8 +125,17 @@
     let homeTimer = null;
 
     function renderThings() {
-      $('#things').innerHTML = C.THINGS.filter(t => !(t.hideWhenOpen && !A.opensIn(t))).map(t => {
+      const early = A.early();
+      $('#things').innerHTML = C.THINGS.filter(t => !(t.hideWhenOpen && (!A.opensIn(t) || early))).map(t => {
         const wait = A.opensIn(t);
+        if (wait && early && !STATUS[t.status]) {   // EARLY_ACCESS_SIDES: open it now, and say who still waits
+          return `
+          <li><a href="${esc(new URL(t.path, A.ROOT).pathname)}">
+            <span class="thing-title">${esc(t.title)}</span>
+            <span class="thing-text">${esc(t.text)}</span>
+            <span class="thing-status">Chỉ anh thấy · em mở sau <span data-opens="${esc(t.path)}">${A.countdownText(wait)}</span></span>
+          </a></li>`;
+        }
         if (wait || STATUS[t.status]) {
           const teaser = wait && t.teaser;   // a surprise: hide the real name and text until it opens
           const count = `<span data-opens="${esc(t.path)}">${A.countdownText(wait)}</span>`;
