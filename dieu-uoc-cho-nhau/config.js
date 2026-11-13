@@ -5,7 +5,7 @@ window.HU_CONFIG = {
   // The backend: Apps Script web app URL (ends in /exec). See backend/Code.gs.
   // Sign-in itself still goes through the Hai nửa backend (AUTH_API_URL in ../shared/config.js).
   // While empty, the page says it is being connected (preview mode with ?demo still works).
-  API_URL: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbzFWKRI1G821GfziEFDxfwu085nhqXAeAkq1hRVaP0h8RAaje0VLL3Xp3lSkRlLa3O2iQ/exec',
 
   // These sides can open the page before its release date (THINGS in ../shared/config.js),
   // e.g. so Luân can fill the jar before Thư sees it. 'left' Luân, 'right' Thư.
