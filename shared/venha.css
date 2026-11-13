@@ -9,16 +9,58 @@
   color: #2A1F2D;
 }
 .vn p { margin: 0; }
+/* The whole countdown is the button that shows and hides the details. */
+.vn-toggle {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.vn-toggle:focus-visible { outline: 3px solid #6A3FA0; outline-offset: 5px; }
+.vn-toggle:active .vn-count { transform: scale(.985); }
 .vn-kicker {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px !important;
+  margin-bottom: 10px;
   font-weight: 800;
   font-size: 1.15rem;
   letter-spacing: -0.01em;
   line-height: 1.25;
 }
+.vn-kicker-text { min-width: 0; }
+.vn-more-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex: none;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #8A4A0C;
+}
+.vn-chev {
+  width: 7px; height: 7px;
+  margin: -3px 2px 0 1px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform .25s ease, margin .25s ease;
+}
+.vn.is-open .vn-chev { transform: rotate(-135deg); margin-top: 3px; }
+/* A delay or a cancellation, while the details are folded away. */
+.vn-alert { width: 8px; height: 8px; border-radius: 50%; }
+.vn-alert-warn { background: #D99000; }
+.vn-alert-bad { background: #C8102E; }
 .vn-kicker::before {
   content: '';
   flex: none;
@@ -27,8 +69,8 @@
   background: #E07306;
   box-shadow: 0 0 0 4px rgba(224, 115, 6, .18);
 }
-.vn-count { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.vn-count div {
+.vn-count { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; transition: transform .12s ease; }
+.vn-cell {
   display: grid;
   justify-items: center;
   padding: 8px 2px 6px;
@@ -43,7 +85,13 @@
   font-variant-numeric: tabular-nums;
   color: #B4560A;
 }
-.vn-count span { font-size: .78rem; color: #6E6475; }
+.vn-cell small { font-size: .78rem; color: #6E6475; }
+
+/* The details: folded by default, unfold on tap. */
+.vn-more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .28s ease; }
+.vn.is-open .vn-more { grid-template-rows: 1fr; }
+.vn-more-in { min-height: 0; overflow: hidden; }
+.vn-more-in > :first-child { margin-top: 12px !important; }
 .vn-when { margin-top: 10px !important; font-size: .86rem; line-height: 1.4; color: #6E6475; }
 
 /* The flights under the countdown. */
@@ -182,4 +230,5 @@ html.vn-open { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) {
   .vn-letter-root, .vn-letter { animation: none !important; }
+  .vn-more, .vn-chev, .vn-count { transition: none !important; }
 }

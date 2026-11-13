@@ -12,7 +12,8 @@
  * The landing time follows the flight: the backend (action veNha) knows Thư's ticket and the flight's
  * live status; RETURN.AT is only the plan used until it answers.
  *
- *  - Before landing: a live countdown, for both, with the flights and their status.
+ *  - Before landing: a live countdown, for both. Tap it to show the landing time, the flights and their
+ *    status (and Luân's preview link); tap again to hide them. It always opens collapsed.
  *  - For ARRIVED_HOURS after landing: "Em về rồi". After that the banner goes away.
  *  - The first time Thư opens the app after landing, the welcome letter opens by itself, once.
  *  - Luân sees a "Xem thử" button that opens the letter any time; that never counts as Thư seeing it.
@@ -210,6 +211,7 @@
 
   let banners = [];
   let lastPhase = '';
+  let expanded = false;   // the details under the countdown; collapsed every time the page opens
   let popupChecked = false;
   let popupTries = 0;
 
@@ -217,7 +219,7 @@
     if (!ready) return;
     const p = phase();
     lastPhase = p;
-    banners.forEach(el => {
+    banners.forEach((el, i) => {
       if (p === 'off' || p === 'after') { el.innerHTML = ''; return; }
       const previewBtn = side() === 'left'
         ? `<button type="button" class="vn-preview" data-venha-preview>${esc(T.preview)}</button>` : '';
@@ -230,18 +232,29 @@
           </section>`;
         return;
       }
+      const s = statusLine();
+      const alert = s && (s.tone === 'warn' || s.tone === 'bad') ? s.tone : '';
       el.innerHTML = `
-        <section class="vn" aria-label="${esc(bySide(T.kicker))}">
-          <p class="vn-kicker">${esc(bySide(T.kicker))}</p>
-          <div class="vn-count" role="timer" aria-live="off">
-            <div><b data-u="d">0</b><span>ngày</span></div>
-            <div><b data-u="h">00</b><span>giờ</span></div>
-            <div><b data-u="m">00</b><span>phút</span></div>
-            <div><b data-u="s">00</b><span>giây</span></div>
+        <section class="vn${expanded ? ' is-open' : ''}" aria-label="${esc(bySide(T.kicker))}">
+          <button type="button" class="vn-toggle" data-venha-toggle aria-expanded="${expanded}" aria-controls="vn-more-${i}">
+            <span class="vn-kicker">
+              <span class="vn-kicker-text">${esc(bySide(T.kicker))}</span>
+              <span class="vn-more-label">${alert ? `<span class="vn-alert vn-alert-${alert}" aria-hidden="true"></span>` : ''}<span data-venha-label>${expanded ? 'Thu gọn' : 'Chi tiết'}</span><span class="vn-chev" aria-hidden="true"></span></span>
+            </span>
+            <span class="vn-count" role="timer" aria-live="off">
+              <span class="vn-cell"><b data-u="d">0</b><small>ngày</small></span>
+              <span class="vn-cell"><b data-u="h">00</b><small>giờ</small></span>
+              <span class="vn-cell"><b data-u="m">00</b><small>phút</small></span>
+              <span class="vn-cell"><b data-u="s">00</b><small>giây</small></span>
+            </span>
+          </button>
+          <div class="vn-more" id="vn-more-${i}"${expanded ? '' : ' inert'}>
+            <div class="vn-more-in">
+              <p class="vn-when">${esc(landingText())}</p>
+              ${flightHTML()}
+              ${previewBtn}
+            </div>
           </div>
-          <p class="vn-when">${esc(landingText())}</p>
-          ${flightHTML()}
-          ${previewBtn}
         </section>`;
     });
     tick();
@@ -256,6 +269,22 @@
     banners.forEach(el => {
       const set = (u, v) => { const b = el.querySelector(`[data-u=${u}]`); if (b && b.textContent !== v) b.textContent = v; };
       set('d', String(t.d)); set('h', pad(t.h)); set('m', pad(t.m)); set('s', pad(t.s));
+    });
+  }
+
+  /** Show or hide the details under the countdown (in place, so it can animate). */
+  function toggle() {
+    expanded = !expanded;
+    banners.forEach(el => {
+      const sec = el.querySelector('.vn');
+      if (!sec) return;
+      sec.classList.toggle('is-open', expanded);
+      const btn = sec.querySelector('[data-venha-toggle]');
+      if (btn) btn.setAttribute('aria-expanded', String(expanded));
+      const label = sec.querySelector('[data-venha-label]');
+      if (label) label.textContent = expanded ? 'Thu gọn' : 'Chi tiết';
+      const more = sec.querySelector('.vn-more');
+      if (more) more.toggleAttribute('inert', !expanded);
     });
   }
 
@@ -299,6 +328,7 @@
     document.addEventListener('click', e => {
       const b = e.target.closest('[data-venha-preview]');
       if (b) preview(b);
+      if (e.target.closest('[data-venha-toggle]')) toggle();
     });
   }
 
